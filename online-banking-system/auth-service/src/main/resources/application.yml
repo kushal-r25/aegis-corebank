@@ -1,0 +1,28 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: auth-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5435}/auth_db?options=-c%20timezone%3DUTC
+    username: bank
+    password: bank
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+jwt:
+  secret: ${JWT_SECRET:this-is-a-local-dev-secret-change-in-prod-min-32-bytes-long}
+  expiration-ms: 3600000  # 1 hour
+
+logging:
+  level:
+    com.bank: DEBUG

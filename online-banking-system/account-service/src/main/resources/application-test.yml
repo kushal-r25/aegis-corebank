@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:accountdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DEFAULT_LOCK_TIMEOUT=15000;LOCK_TIMEOUT=15000
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  kafka:
+    bootstrap-servers: localhost:9092
+jwt:
+  secret: test-secret-key-for-junit-only-min-32-bytes-long
