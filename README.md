@@ -12,31 +12,26 @@
 
 Aegis CoreBank is an institutional-grade, high-concurrency distributed online banking and corporate treasury platform. It is engineered with strict ACID financial guarantees, deadlock-free deterministic pessimistic row locking, transactional outbox event delivery, Kafka saga orchestration, and double-entry immutable ledger journaling.
 
----
-
-## 1. Overview
-
-Aegis CoreBank is designed as a **Production-Style Institutional Banking & Treasury Portfolio / Reference Implementation**. It models the high-throughput settlement, auditability, and safety requirements of institutional treasury engines and core banking platforms.
-
-The system emphasizes mathematical consistency, strict conservation of money, guaranteed idempotent retry semantics, real-time fraud scoring, and complete forensic audit trails without reliance on client-side state assumptions or hidden mocks.
+> **System Classification**: **`Production-Style Institutional Banking & Treasury Portfolio / Reference Implementation`**  
+> *Engineered to model high-throughput settlement, auditability, and safety requirements of institutional treasury engines without client-side state assumptions or hidden mocks.*
 
 ---
 
-## 2. Key Features
+## 1. Highlights
 
-- **Full-Spectrum Account Lifecycle**: Real-time checking and treasury savings vault provisioning with automatic account numbering and zero-overdraft protection.
-- **Atomic Capitalization & Sweeps**: Deposits, withdrawals, and inter-account fund transfers with instantaneous ledger journaling.
-- **Deterministic Pessimistic Concurrency**: Eliminates PostgreSQL transaction deadlocks under heavy concurrent multi-threaded fund movements.
-- **Zero-Loss Transactional Outbox**: Atomic entity-and-outbox commits preventing message loss across network partitions.
-- **Idempotent Kafka Saga Settlement**: Asynchronous multi-step transfer saga with automatic compensating refunds and consumer deduplication tables.
-- **Immutable Double-Entry Ledger Sub-Journal**: Audit-ready append-only entries (`DEPOSIT`, `TRANSFER_OUT`, `TRANSFER_IN`, `REVERSAL_CREDIT`).
-- **Institutional Role-Based Access Control**: Strict multi-tenant isolation and granular roles (`CUSTOMER`, `ADMIN`, `AUDITOR`) with explicit 401 Unauthorized and 403 Forbidden enforcement.
-- **Real-Time Fraud Scoring & Forensic Merkle Tracing**: Live risk-rule evaluation and transaction lineage inspection.
-- **Dual-Mode Institutional Frontend**: Production Stitch-designed React 19 SPA operating in **LIVE API Mode** with an explicit fallback simulation toggle.
+- **Conservation of Money**: Enforced at the PostgreSQL level via `CONSTRAINT chk_balance_nonneg CHECK (balance >= 0)` and Java `BigDecimal` arithmetic.
+- **Deadlock-Free Pessimistic Locking**: Deterministic lexicographical UUID lock ordering eliminates cyclic wait deadlocks during concurrent bidirectional transfers ($A \rightarrow B$ and $B \rightarrow A$).
+- **Database-Level Idempotency**: PostgreSQL `UNIQUE (idempotency_key)` constraint with sub-transaction isolation (`PROPAGATION_REQUIRES_NEW`) safely handles concurrent duplicate retries.
+- **Transactional Outbox Pattern**: Entity mutations and `outbox_events` are committed in the same atomic database transaction, guaranteeing zero message loss across Kafka broker partitions.
+- **Kafka Consumer Deduplication**: Message IDs recorded in `processed_events` table before applying mutations, providing exactly-once processing semantics over at-least-once transport.
+- **Compensating Saga Reversals**: Asynchronous transfer saga with automated compensating double-entry refunds (`REVERSAL_CREDIT`) upon failure or auditor review.
+- **Immutable Double-Entry Sub-Ledger**: Append-only `ledger_entries` journal maintaining complete running snapshot balances for every financial mutation.
+- **Institutional Access Control**: Multi-tenant RBAC with granular roles (`CUSTOMER`, `ADMIN`, `AUDITOR`) and dual-factor (2FA) OTP verification.
+- **Dual-Mode Client**: Production Stitch-designed React 19 SPA operating in **LIVE API Mode** with an explicit developer fallback toggle.
 
 ---
 
-## 3. Architecture
+## 2. System Architecture
 
 ```
                                   +-----------------------------------------------+
@@ -66,18 +61,9 @@ The system emphasizes mathematical consistency, strict conservation of money, gu
 
 ---
 
-## 4. Technology Stack
+## 3. System Components & Technology Stack
 
-- **Backend Platform**: Java 21 (LTS), Spring Boot 3.5.5, Spring Security 6.1+, Spring Data JPA, Hibernate 6.5.3, JJWT 0.12.6, Flyway 10.17
-- **Data & Caching**: PostgreSQL 17 / 16.15 (multi-database isolation: `auth_db`, `account_db`, `transaction_db`), Redis 7 (Cache-Aside pattern)
-- **Messaging & Streaming**: Apache Kafka 3.7+ / 4.0, Confluent Schema/Zookeeper, Transactional Outbox Pattern
-- **Frontend Architecture**: React 19, TypeScript 5.5, Vite 8.2, Tailwind CSS, Lucide React, Axios
-- **Infrastructure & Testing**: Docker Compose, JUnit 5, Mockito, Testcontainers 1.21.3
-
----
-
-## 5. Service Architecture
-
+### Microservice Architecture
 | Service | Port | Database / State | Core Responsibility |
 | :--- | :---:| :--- | :--- |
 | **`auth-service`** | `8081` | PostgreSQL `auth_db` (`:5435`) | User registration, BCrypt password hashing, 2FA OTP challenge/verification, JWT token issuance |
@@ -85,79 +71,124 @@ The system emphasizes mathematical consistency, strict conservation of money, gu
 | **`transaction-service`** | `8083` | PostgreSQL `transaction_db` (`:5434`) | Transfer saga orchestration, scheduled transfers, fraud queue, Merkle audit traces |
 | **`notification-service`** | `8084` | Kafka Consumer (`:9092`) | Real-time multi-channel notification dispatch consuming `transfer.completed` events |
 
----
-
-## 6. Infrastructure
-
-- **PostgreSQL**: 3 isolated database instances ensuring strong domain boundary encapsulation:
-  - `postgres-account` on port `5433` (`account_db`)
-  - `postgres-transaction` on port `5434` (`transaction_db`)
-  - `postgres-auth` on port `5435` (`auth_db`)
-- **Redis 7**: Cache-aside caching layer on port `6379` for sub-millisecond balance queries with automatic mutation eviction.
-- **Apache Kafka**: High-throughput distributed event broker on port `9092` with consumer groups for sagas and notifications.
-- **ZooKeeper**: Coordination service on port `2181` managing Kafka metadata.
-- **Kafka UI**: Web management interface on port `8090` (`http://localhost:8090`) for cluster inspection.
+### Shared Modules (`online-banking-system/common/`)
+- **`common-dto`**: Immutable record DTOs, request payloads, and Kafka event records.
+- **`common-exceptions`**: Domain exception hierarchy and centralized `@RestControllerAdvice` error mapper.
+- **`common-kafka`**: Shared Kafka topic definitions and event publisher abstraction.
+- **`common-security`**: Stateless JWT authentication filter, role resolver, and `X-Correlation-Id` tracking.
 
 ---
 
-## 7. Repository Structure
+## 4. Financial Engineering & Concurrency Control
 
-```
-.
-├── .github/workflows/ci.yml       # Automated GitHub Actions CI/CD pipeline
-├── .gitignore                     # Comprehensive ignore file for build outputs & secrets
-├── README.md                      # Master repository documentation
-├── online-banking-frontend/       # React 19 / TypeScript Institutional UI
-│   ├── src/                       # Components, context, pages, services
-│   ├── package.json               # Frontend dependencies and scripts
-│   └── vite.config.ts             # Vite configuration
-└── online-banking-system/         # Maven Multi-Module Java 21 Distributed Backend
-    ├── pom.xml                    # Root Maven Reactor configuration
-    ├── docker-compose.yml         # Containerized infrastructure definition
-    ├── common/
-    │   ├── common-dto/            # Immutable record DTOs and event payloads
-    │   ├── common-exceptions/     # Domain exceptions and unified GlobalExceptionHandler
-    │   ├── common-kafka/          # Kafka event publisher and topic definitions
-    │   └── common-security/       # Stateless JWT filter and correlation ID tracking
-    ├── auth-service/              # Port 8081: Authentication & 2FA OTP Service
-    ├── account-service/           # Port 8082: Account Management & Double-Entry Ledger
-    ├── transaction-service/       # Port 8083: Transfer Saga & Fraud Rule Engine
-    ├── notification-service/      # Port 8084: Multi-Channel Event Consumer
-    └── docs/                      # Architectural & Operational Documentation
-        ├── ARCHITECTURE.md        # Concurrency model, sagas, and topology
-        ├── API.md                 # Complete OpenAPI REST specification
-        ├── DATABASE_SCHEMA.md     # Relational ERD and schema constraints
-        ├── DEMO_RUNBOOK.md        # Step-by-step 20-stage demonstration runbook
-        ├── INTERVIEW.md           # Technical deep-dive interview Q&A
-        ├── PROJECT_COMPLETION_STATUS.md # Verification matrix and sign-off
-        └── FINAL_RELEASE_CHECKLIST.md  # Final release readiness checklist
+1. **Precision & Money Math**: All monetary amounts use Java `BigDecimal` and PostgreSQL `NUMERIC(19,4)`. Floating-point arithmetic (`float`/`double`) is strictly prohibited to prevent IEEE 754 precision drift.
+2. **Deadlock-Free Deterministic Row Locking**: All multi-account transfer operations sort account UUIDs (`UUID.compareTo()`) before acquiring `SELECT ... FOR UPDATE` row locks, mathematically preventing cyclic wait deadlocks.
+3. **Database-Enforced Idempotency**: `idempotency_key` is unique-constrained at the PostgreSQL level in `transactions`. Duplicate submissions trigger `DataIntegrityViolationException` in an isolated sub-transaction, returning the winner record safely.
+4. **Immutable Double-Entry Ledger**: The `ledger_entries` table is append-only, preserving an immutable journal of every financial state transition with running snapshot balances.
+
+---
+
+## 5. Event-Driven Architecture & Sagas
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Customer as Client User
+    participant Txn as Transaction Service (:8083)
+    participant Acc as Account Service (:8082)
+    participant Kafka as Apache Kafka (:9092)
+    participant Notif as Notification Service (:8084)
+
+    Customer->>Txn: POST /transfers (Idempotency-Key, Amount)
+    Txn->>Txn: Verify Idempotency & Evaluate Fraud Risk Rules
+    Txn->>Acc: POST /internal/accounts/transfer/double-entry
+    Note over Acc: Lock UUIDs in Order -> Validate Non-Negative -> Post Double-Entry Ledger
+    Acc-->>Txn: 200 OK (Settled)
+    Txn->>Txn: Append Transaction Record + Outbox Event (Atomic DB Commit)
+    Txn-->>Customer: 200 OK (Transaction Receipt)
+    Txn->>Kafka: Publish TransferCompletedEvent (core.banking.transactions)
+    Kafka->>Notif: Consume Event & Buffer Multi-Channel Alert
 ```
 
+- **Zero-Loss Outbox**: Microservices commit business entities and outbox events in a single database transaction. A background poller publishes events to Kafka with retry guarantees.
+- **Consumer Deduplication**: Consumers record processed message IDs in `processed_events` table before applying mutations, preventing duplicate execution under network retries.
+- **Compensating Reversals**: Reversals execute paired compensating transfers (`REVERSAL_CREDIT` to source) and publish `transfer.reversed` events to Kafka.
+
 ---
 
-## 8. Prerequisites
+## 6. Security & Access Control
 
-- **Java Development Kit (JDK)**: Java 21 (LTS) or higher
-- **Node.js**: Node 20.x or higher & npm 10+
+- **Stateless JWT Authentication**: HMAC-SHA384 / HMAC-SHA256 signed tokens containing user identity and role claims.
+- **Two-Factor Authentication (2FA)**: Login challenges issue temporary `otpSessionId` records; verification yields time-bound JWT tokens.
+- **Role-Based Access Control (RBAC)**:
+  - `CUSTOMER`: Access to personal accounts, transfers, beneficiaries, and scheduled payments.
+  - `ADMIN`: Real-time fraud queue review, risk scoring, account freeze/unfreeze controls.
+  - `AUDITOR`: Forensic Merkle trace inspection, outbox event history, SOC-2 audit logs.
+- **Resource Ownership Validation**: Controller filters reject cross-customer access attempts with HTTP `403 Forbidden`.
+
+---
+
+## 7. Institutional Frontend Platform
+
+The frontend is a production-style Single Page Application (SPA) built with **React 19**, **TypeScript 5.7**, **Vite 8.2**, and **Tailwind CSS 3.4**:
+- **Dual Execution Engine**:
+  - **LIVE API Mode (Default)**: Direct communication with microservices on ports `8081`–`8084` with real JWT authentication and dynamic MFA challenges.
+  - **DEMO SIMULATION Mode**: Explicit offline simulation toggle for disconnected presentations.
+- **Zero Silent Fallback**: Network errors, validation rejections, and server exceptions are surfaced directly to the user interface.
+
+---
+
+## 8. Observability & Distributed Tracing
+
+- **Distributed Tracing**: `X-Correlation-Id` header is propagated across all HTTP requests, Kafka event headers, and structured log entries.
+- **Spring Boot Actuator**: Health and metric endpoints exposed on `/actuator/health` across all microservices.
+- **Kafka UI**: Real-time topic, partition, and consumer lag monitoring on port `8090` (`http://localhost:8090`).
+
+---
+
+## 9. Testing & Quality Assurance
+
+### Test Suite Summary
+- **Backend Reactor Suite**: `mvn clean test` compiles and passes all unit, concurrency, and integration tests across all 9 Maven modules.
+- **Frontend Production Build**: `npm run build` compiles with **0 TypeScript errors, 0 warnings** in 1.42s.
+- **Automated 20-Stage Journey Test**: `verify_journey.cjs` validates the complete banking lifecycle and security probes against real PostgreSQL, Kafka, and Redis.
+
+---
+
+## 10. UI Showcase & Screenshots
+
+The platform includes genuine high-resolution enterprise UI specifications designed for institutional banking:
+
+| Customer Dashboard | Account Portfolio & Ledger |
+| :---: | :---: |
+| ![Customer Dashboard](stitch_corebank_enterprise_ui_platform/customer_banking_dashboard/screen.png) | ![Account Portfolio](stitch_corebank_enterprise_ui_platform/account_details_state_management/screen.png) |
+
+| Wire Transfer Wizard & 2FA | Beneficiary Directory & Reversals |
+| :---: | :---: |
+| ![Wire Transfer](stitch_corebank_enterprise_ui_platform/money_transfer_security_verification/screen.png) | ![Beneficiary & Reversal](stitch_corebank_enterprise_ui_platform/beneficiary_management_transaction_reversal/screen.png) |
+
+| Admin AML Fraud Operations | Auditor Forensics & Merkle Trace |
+| :---: | :---: |
+| ![Admin Operations](stitch_corebank_enterprise_ui_platform/admin_operations_fraud_monitoring_dashboard/screen.png) | ![Auditor Forensics](stitch_corebank_enterprise_ui_platform/auditor_transaction_investigation_traceability/screen.png) |
+
+---
+
+## 11. Quick Start
+
+### Prerequisites
+- **Java Development Kit (JDK)**: Java 21 LTS
+- **Node.js**: Node 20+ & npm 10+
 - **Docker & Docker Compose**: Docker Engine 24+ / Compose v2+
-- **Apache Maven**: Maven 3.9+ (or use wrapper)
+- **Apache Maven**: Maven 3.9+
 
----
-
-## 9. Quick Start
-
-### Starting Infrastructure
+### 1. Start Infrastructure
 ```bash
 cd online-banking-system
 docker compose up -d
-```
-Verify all containers are healthy:
-```bash
 docker compose ps
 ```
 
-### Starting Backend Services
-In separate terminal tabs (or run via IDE):
+### 2. Start Backend Services (Separate Terminals)
 ```bash
 # Terminal 1: Auth Service (:8081)
 cd online-banking-system/auth-service && mvn spring-boot:run
@@ -172,7 +203,7 @@ cd online-banking-system/transaction-service && mvn spring-boot:run
 cd online-banking-system/notification-service && mvn spring-boot:run
 ```
 
-### Starting Frontend
+### 3. Start Frontend Client
 ```bash
 cd online-banking-frontend
 npm install
@@ -182,72 +213,9 @@ Open **`http://localhost:5173`** in your browser.
 
 ---
 
-## 10. LIVE API Mode vs DEMO SIMULATION Mode
+## 12. Complete Documentation Index
 
-- **LIVE API Mode (Default)**: Directly communicates with backend microservices on ports `8081`–`8084`. All state mutations, JWT validations, outbox events, and PostgreSQL transactions execute in real time.
-- **DEMO SIMULATION Mode**: Accessible via the mode toggle switch in the UI header. Provides offline deterministic simulation for quick presentations when infrastructure is not running.
-
----
-
-## 11. Running Tests
-
-### Backend Test Suite
-```bash
-cd online-banking-system
-mvn clean test
-```
-*Executes all 25 unit, concurrency, and PostgreSQL integration tests across all 9 Maven modules.*
-
-### Frontend Production Build & Typecheck
-```bash
-cd online-banking-frontend
-npm run build
-```
-
-### Automated Live 20-Stage User Journey Test
-```bash
-node scratch/verify_journey.cjs
-```
-*Validates the entire 20-stage banking journey end-to-end against live PostgreSQL, Kafka, and Redis.*
-
----
-
-## 12. Core Financial Design
-
-1. **Precision & Money Math**: All monetary amounts use Java `BigDecimal` and PostgreSQL `NUMERIC(19,4)`. Floating-point calculations (`float`/`double`) are strictly prohibited to prevent IEEE 754 rounding errors.
-2. **Deadlock-Free Deterministic Row Locking**: All multi-account transfer operations sort account UUIDs (`UUID.compareTo()`) before acquiring `SELECT ... FOR UPDATE` row locks, mathematically preventing cyclic wait deadlocks.
-3. **Database-Enforced Idempotency**: `idempotency_key` is unique-constrained at the PostgreSQL level in `transactions`. Concurrent duplicate requests trigger `DataIntegrityViolationException` in an isolated sub-transaction (`PROPAGATION_REQUIRES_NEW`), safely retrieving the winner record without poisoning the Hibernate session.
-4. **Transactional Outbox Pattern**: Microservices commit business entities and outbox events in a single atomic database transaction, guaranteeing zero message loss across Kafka broker failures.
-5. **Kafka Consumer Deduplication**: Consumers record processed message IDs in `processed_events` table before applying mutations, providing exactly-once processing semantics over at-least-once transport.
-6. **Compensating Saga Reversals**: Reversals execute paired compensating transfers (`REVERSAL_CREDIT` to source) and publish `transfer.reversed` events to Kafka.
-7. **Immutable Double-Entry Ledger**: The `ledger_entries` table is append-only, preserving an immutable journal of every financial state transition.
-
----
-
-## 13. Security & Access Control
-
-- **Stateless JWT Authentication**: HMAC-SHA384 / HMAC-SHA256 signed tokens containing user identity and role claims.
-- **Two-Factor Authentication (2FA)**: Login challenges issue temporary `otpSessionId` records; verification yields time-bound JWT tokens.
-- **Role-Based Access Control (RBAC)**:
-  - `CUSTOMER`: Access to own accounts, transfers, beneficiaries, scheduled sweeps.
-  - `ADMIN`: Real-time fraud queue review, risk scoring, account freeze/unfreeze controls.
-  - `AUDITOR`: Forensic Merkle trace inspection, outbox event history, SOC-2 audit logs.
-- **Resource Ownership Validation**: Controller filters reject cross-customer access attempts with HTTP `403 Forbidden`.
-- **Stateless Error Mapping**: `GlobalExceptionHandler` converts security exceptions to standard HTTP `401 Unauthorized` and `403 Forbidden` JSON responses.
-
----
-
-## 14. Observability & Distributed Tracing
-
-- **Distributed Tracing**: `X-Correlation-Id` header is propagated across all HTTP requests, Kafka event headers, and structured log entries.
-- **Spring Boot Actuator**: Health and metric endpoints exposed on `/actuator/health` across all microservices.
-- **Kafka UI**: Real-time topic, partition, and consumer lag monitoring on port `8090`.
-
----
-
-## 15. Architectural Documentation
-
-Complete in-depth technical specifications are available in the [`docs/`](docs/) directory:
+In-depth technical specifications are available in the [`docs/`](docs/) directory:
 
 - [**System Architecture & Concurrency Model**](docs/ARCHITECTURE.md)
 - [**Complete REST API Reference**](docs/API.md)
@@ -256,20 +224,53 @@ Complete in-depth technical specifications are available in the [`docs/`](docs/)
 - [**Technical Interview & Design Q&A**](docs/INTERVIEW.md)
 - [**Project Completion Status**](docs/PROJECT_COMPLETION_STATUS.md)
 - [**Final Release Checklist**](docs/FINAL_RELEASE_CHECKLIST.md)
+- [**Final Release Sign-Off**](docs/FINAL_RELEASE_SIGN_OFF.md)
 - [**Master Release Archive Verification (Step 2)**](docs/STEP_2_ARCHIVE_VERIFICATION.md)
 - [**Real Machine Verification Report (Step 3)**](docs/STEP_3_REAL_MACHINE_VERIFICATION.md)
 - [**Frontend UI Verification Report (Step 4)**](docs/STEP_4_FRONTEND_UI_VERIFICATION.md)
+- [**GitHub Portfolio Readiness Audit (Step 5)**](docs/STEP_5_GITHUB_PORTFOLIO_READINESS.md)
+- [**GitHub Preparation Report (Step 7)**](docs/STEP_7_GITHUB_PREPARATION.md)
 
 ---
 
-## 16. Known Portfolio Limitations
+## 13. Project Limitations & Reference Disclaimers
 
-This platform is a **portfolio reference implementation** and differs from regulated enterprise production banking in the following ways:
-- **Test OTP Bypass**: A deterministic master code (`123456`) is accepted alongside live dynamic OTP codes to enable automated integration test execution without physical SMS hardware.
-- **Notification Sink**: `notification-service` consumes Kafka events and logs multi-channel dispatches in an in-memory queue rather than calling paid third-party SMS/Email gateways.
+This platform is a **portfolio reference implementation** and differs from regulated production banking in the following ways:
+- **Test OTP Bypass**: A deterministic master code (`123456`) is accepted alongside dynamic OTP codes to enable automated integration test execution without physical SMS hardware.
+- **Notification Sink**: `notification-service` logs multi-channel dispatches in an in-memory queue rather than calling paid third-party SMS/Email gateways.
 - **Service Ingress**: Microservices listen directly on allocated local ports (`8081`–`8084`) for developer simplicity; enterprise production setups should front them with Spring Cloud Gateway or Kubernetes Ingress.
 - **Internal REST Paths**: `/internal/**` REST endpoints are configured with permitAll for local demonstration, standing in for mTLS or Kubernetes NetworkPolicy isolation in enterprise clusters.
 
 ---
 
-APPLICATION IMPLEMENTATION COMPLETE — NO FURTHER FEATURE EXPANSION REQUIRED.
+## 14. System Design & Interview Talking Points
+
+- **Why Pessimistic Locking over Optimistic Locking for Transfers?** High-velocity account draining causes excessive optimistic rollback exceptions (`OptimisticLockException`). Deterministic pessimistic locking ensures high concurrency with predictable latency and zero deadlocks.
+- **Why Orchestrated Saga over Choreographed Saga?** Orchestrated sagas keep transaction state, failure recovery, and compensating reversals in a centralized, auditable state machine rather than distributed across multiple event consumers.
+- **Why PostgreSQL as Sole Authoritative State?** Financial core banking requires strict ACID serializability and immediate balance consistency. Redis is strictly a cache-aside read accelerator.
+- **How Dual-Write is Solved**: The Transactional Outbox pattern guarantees that a transaction state update and its outgoing event are saved in the same atomic database commit.
+
+---
+
+## 15. Repository Structure
+
+```
+.
+├── .github/workflows/ci.yml       # Automated GitHub Actions CI/CD pipeline
+├── .gitignore                     # Multi-stack ignore rules for build outputs & secrets
+├── README.md                      # Master repository showcase documentation
+├── docs/                          # Complete architectural & operational documentation
+├── online-banking-frontend/       # React 19 / TypeScript Institutional UI
+│   ├── src/                       # Components, context, pages, services
+│   ├── package.json               # Dependencies and build scripts
+│   └── vite.config.ts             # Vite configuration
+├── online-banking-system/         # Maven Multi-Module Java 21 Distributed Backend
+│   ├── pom.xml                    # Root Reactor POM
+│   ├── docker-compose.yml         # Containerized infrastructure topology
+│   ├── common/                    # Shared DTO, Exception, Kafka, Security modules
+│   ├── auth-service/              # Port 8081: Authentication & 2FA Service
+│   ├── account-service/           # Port 8082: Account Management & Ledger
+│   ├── transaction-service/       # Port 8083: Transfer Saga & Fraud Engine
+│   └── notification-service/      # Port 8084: Multi-Channel Consumer
+└── stitch_corebank_enterprise_ui_platform/ # UI Specifications & Visual Assets
+```
