@@ -71,7 +71,7 @@ export const ScheduledTransfersPage: React.FC = () => {
                   <span className="material-symbols-outlined text-[22px]">calendar_clock</span>
                 </div>
                 <div>
-                  <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Schedule Automated Wire</h3>
+                  <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Schedule New Payment</h3>
                   <p className="font-label-meta text-label-meta uppercase text-on-surface-variant">Recurring Ledger Execution</p>
                 </div>
               </div>
@@ -184,13 +184,13 @@ export const ScheduledTransfersPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-label-meta uppercase text-secondary font-bold">
             <span className="material-symbols-outlined text-[18px]">schedule</span>
-            <span>Automated Recurring Wire Platform</span>
+            <span>Standing Instructions &amp; Recurring Payments</span>
           </div>
           <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface mt-1">
             Scheduled Transfers
           </h1>
           <p className="text-body-sm text-on-surface-variant mt-0.5">
-            Cron-driven settlements supporting USD &amp; INR with idempotency checks.
+            Automate monthly rent, bill payments, and SIP transfers in INR with double-entry safety.
           </p>
         </div>
 
@@ -199,7 +199,7 @@ export const ScheduledTransfersPage: React.FC = () => {
           className="flex items-center gap-2 px-4 py-2.5 bg-primary text-on-primary rounded-xl font-bold hover:bg-inverse-surface transition-colors shadow-sm text-body-sm"
         >
           <span className="material-symbols-outlined text-[18px]">calendar_clock</span>
-          <span>New Scheduled Wire</span>
+          <span>New Scheduled Payment</span>
         </button>
       </div>
 

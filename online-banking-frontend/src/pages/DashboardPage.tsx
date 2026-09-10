@@ -24,8 +24,8 @@ export const DashboardPage: React.FC = () => {
 
   // Quick Transfer simple state
   const [quickSourceAccId, setQuickSourceAccId] = useState(accounts[0]?.id || '');
-  const [quickAmount, setQuickAmount] = useState('2400.00');
-  const [quickPayee, setQuickPayee] = useState(beneficiaries[0]?.name || 'Apex Global Tech Ltd');
+  const [quickAmount, setQuickAmount] = useState('5000.00');
+  const [quickPayee, setQuickPayee] = useState(beneficiaries[0]?.name || 'Tata Consultancy Services Ltd');
   const [isTransferring, setIsTransferring] = useState(false);
 
   const refreshData = () => {
@@ -145,12 +145,12 @@ export const DashboardPage: React.FC = () => {
           <div className="flex flex-col">
             <div className="flex items-center gap-2 text-on-surface-variant font-label-meta uppercase tracking-wider text-[11px]">
               <span className="inline-block w-2 h-2 rounded-full bg-on-tertiary-container animate-pulse"></span>
-              <span>Core Vault Client Session Active</span>
+              <span>Secure Online Banking Session Active</span>
               <span>•</span>
               <span>Multi-Currency (USD · INR) Active</span>
             </div>
             <h1 className="font-headline-lg text-headline-lg text-on-surface tracking-tight mt-1">
-              Good morning, Eleanor
+              Good morning, Rahul 👋
             </h1>
             <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
               Last authenticated: Today at 08:42 AM from <span className="font-mono font-semibold text-on-surface">192.168.1.104</span> (Mutual TLS active via Edge-Proxy)
@@ -174,7 +174,7 @@ export const DashboardPage: React.FC = () => {
           {/* Net USD Liquidity */}
           <div className="p-5 rounded-xl bg-surface-container-low border border-surface-container-highest flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="font-label-meta uppercase tracking-wider text-on-surface-variant text-[11px]">USD Available Liquidity</span>
+              <span className="font-label-meta uppercase tracking-wider text-on-surface-variant text-[11px]">INR Available Balance</span>
               <span className="px-2 py-0.5 rounded bg-surface-container-high font-label-numeric-sm text-[10px] text-secondary font-bold">USD CLEARED</span>
             </div>
             <div className="my-2">
@@ -191,7 +191,7 @@ export const DashboardPage: React.FC = () => {
           {/* Net INR Liquidity */}
           <div className="p-5 rounded-xl bg-surface-container-low border border-surface-container-highest flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="font-label-meta uppercase tracking-wider text-on-surface-variant text-[11px]">INR Available Liquidity</span>
+              <span className="font-label-meta uppercase tracking-wider text-on-surface-variant text-[11px]">Total Fixed Deposits (INR)</span>
               <span className="px-2 py-0.5 rounded bg-surface-container-high font-label-numeric-sm text-[10px] text-on-tertiary-container font-bold">INR CLEARED</span>
             </div>
             <div className="my-2">
@@ -205,7 +205,7 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Vault Yield Acceleration */}
+          {/* Multi-Currency Global Balance */}
           <div className="p-5 rounded-xl bg-surface-container-low border border-surface-container-highest flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="font-label-meta uppercase tracking-wider text-on-surface-variant text-[11px]">Yield Acceleration</span>
@@ -279,7 +279,7 @@ export const DashboardPage: React.FC = () => {
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
-            <h2 className="font-headline-sm text-headline-sm font-bold text-on-surface">Accounts &amp; Sub-Ledgers</h2>
+            <h2 className="font-headline-sm text-headline-sm font-bold text-on-surface">My Accounts</h2>
             <span className="px-2 py-0.5 rounded-full bg-surface-container-high font-label-numeric-sm text-xs text-on-surface-variant font-semibold">
               {accounts.length} Portfolios
             </span>
@@ -288,7 +288,7 @@ export const DashboardPage: React.FC = () => {
             onClick={() => navigate('/accounts')}
             className="text-secondary hover:underline text-xs font-semibold flex items-center gap-1"
           >
-            <span>Manage Ledgers</span>
+            <span>View All Accounts</span>
             <span className="material-symbols-outlined text-[16px]">chevron_right</span>
           </button>
         </div>
@@ -383,7 +383,7 @@ export const DashboardPage: React.FC = () => {
           <div className="flex items-center justify-between pb-3 border-b border-surface-container-highest">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-secondary text-[20px]">flash_on</span>
-              <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Quick Wire Dispatch</h3>
+              <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Quick Money Transfer</h3>
             </div>
             <span className="font-label-meta text-[10px] uppercase font-bold text-on-tertiary-container bg-tertiary-container/20 px-2 py-0.5 rounded">
               T-0 RTGS
@@ -392,7 +392,7 @@ export const DashboardPage: React.FC = () => {
 
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
-              <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">Originating Ledger</label>
+              <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">From Account</label>
               <select
                 value={quickSourceAccId}
                 onChange={(e) => setQuickSourceAccId(e.target.value)}
@@ -407,7 +407,7 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">Beneficiary Payee</label>
+              <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">To Payee / Beneficiary</label>
               <select
                 value={quickPayee}
                 onChange={(e) => setQuickPayee(e.target.value)}
@@ -452,23 +452,23 @@ export const DashboardPage: React.FC = () => {
               className="w-full py-2.5 px-4 bg-primary text-on-primary font-semibold rounded-xl hover:bg-inverse-surface transition-colors flex items-center justify-center gap-2 shadow-sm"
             >
               <span className="material-symbols-outlined text-[18px]">verified_user</span>
-              <span>Authorize &amp; Dispatch Wire ({quickCurrency})</span>
+              <span>Transfer Instantly ({quickCurrency})</span>
             </button>
           </div>
         </div>
 
-        {/* Recent Ledger Journal (7 Cols) */}
+        {/* Recent Transactions (7 Cols) */}
         <div className="lg:col-span-7 p-5 rounded-2xl bg-surface-container-lowest border border-surface-container-highest shadow-sm flex flex-col gap-4">
           <div className="flex items-center justify-between pb-3 border-b border-surface-container-highest">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-secondary text-[20px]">receipt_long</span>
-              <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Recent Ledger Journal</h3>
+              <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Recent Transactions</h3>
             </div>
             <button
               onClick={() => navigate('/transactions')}
               className="text-secondary hover:underline text-xs font-semibold flex items-center gap-1"
             >
-              <span>Full Journal</span>
+              <span>View All</span>
               <span className="material-symbols-outlined text-[16px]">chevron_right</span>
             </button>
           </div>

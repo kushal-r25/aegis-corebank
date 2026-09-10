@@ -124,9 +124,10 @@ public class AuthService {
     public void initDefaultUsers() {
         if (userRepo.count() == 0) {
             log.info("Bootstrapping default users: admin, auditor, eleanor (customer)...");
-            register("admin", "Admin@123", "+1-555-0100", "ADMIN");
-            register("auditor", "Auditor@123", "+1-555-0101", "AUDITOR");
-            register("eleanor", "Customer@123", "+1-555-0192", "CUSTOMER");
+            register("admin", "Admin@123", "+91-98765-00100", "ADMIN");
+            register("auditor", "Auditor@123", "+91-98765-00101", "AUDITOR");
+            register("rahul", "Customer@123", "+91-98765-43210", "CUSTOMER");
+            register("eleanor", "Customer@123", "+91-98765-43211", "CUSTOMER");
             log.info("Default users bootstrapped successfully.");
         }
     }

@@ -1,4 +1,4 @@
-# Aegis CoreBank — Institutional Online Banking & Treasury Platform
+# Aegis CoreBank — India-First Digital Online Banking Platform
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-success?style=for-the-badge&logo=github)](https://kushal-r25.github.io/aegis-corebank/)
 [![Deploy on Render](https://img.shields.io/badge/Deploy%20to-Render-46E3B7?style=for-the-badge&logo=render)](https://render.com/deploy?repo=https://github.com/kushal-r25/aegis-corebank)
@@ -15,9 +15,9 @@
 
 > **Live Public Demonstration**: [**`https://kushal-r25.github.io/aegis-corebank/`**](https://kushal-r25.github.io/aegis-corebank/)
 
-Aegis CoreBank is an institutional-grade, high-concurrency distributed online banking and corporate treasury platform. It is engineered with strict ACID financial guarantees, deadlock-free deterministic pessimistic row locking, transactional outbox event delivery, Kafka saga orchestration, and double-entry immutable ledger journaling.
+Aegis CoreBank is a modern, India-first digital online banking platform engineered with high concurrency, strict ACID financial guarantees, deadlock-free deterministic pessimistic row locking, transactional outbox event delivery, Kafka saga orchestration, and double-entry immutable ledger journaling. It is engineered with strict ACID financial guarantees, deadlock-free deterministic pessimistic row locking, transactional outbox event delivery, Kafka saga orchestration, and double-entry immutable ledger journaling.
 
-> **System Classification**: **`Production-Style Institutional Banking & Treasury Portfolio / Reference Implementation`**  
+> **System Classification**: **`Production-Style India-First Digital Banking Portfolio / Reference Implementation`**  
 > *Engineered to model high-throughput settlement, auditability, and safety requirements of institutional treasury engines without client-side state assumptions or hidden mocks.*
 
 ---

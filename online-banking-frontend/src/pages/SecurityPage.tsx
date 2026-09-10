@@ -24,7 +24,7 @@ export const SecurityPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-tertiary-container/20 text-on-tertiary-container font-label-meta text-xs font-bold rounded-xl border border-on-tertiary-container/20">
             <span className="w-2 h-2 rounded-full bg-on-tertiary-container"></span>
-            <span>FIPS 140-3 LEVEL 4 COMPLIANT</span>
+            <span>ISO 27001 / CERT-IN GUIDELINES ALIGNED</span>
           </div>
         </div>
       </div>

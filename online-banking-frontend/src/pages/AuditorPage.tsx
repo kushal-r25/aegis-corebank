@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
 import type { TransactionTrace } from '../types';
+import { formatMoney } from '../utils/currency';
 
 export const AuditorPage: React.FC = () => {
-  const [searchTxnId, setSearchTxnId] = useState('TXN-2026-88310');
-  const [trace, setTrace] = useState<TransactionTrace>(() => api.audit.getTransactionTrace('TXN-2026-88310'));
+  const [searchTxnId, setSearchTxnId] = useState('TXN-2026-IND-88310');
+  const [trace, setTrace] = useState<TransactionTrace>(() => api.audit.getTransactionTrace('TXN-2026-IND-88310'));
   const [activeTab, setActiveTab] = useState<'timeline' | 'kafka' | 'merkle'>('timeline');
   const [selectedKafkaEventIndex, setSelectedKafkaEventIndex] = useState<number | null>(null);
 
@@ -18,7 +19,7 @@ export const AuditorPage: React.FC = () => {
   const handleExportProof = () => {
     const proofDoc = {
       complianceStandard: 'ISO-27001 / SOC-2 TYPE II',
-      mandateAuthority: 'Aegis Core Banking Regulatory Verification Engine',
+      mandateAuthority: 'Aegis CoreBank (India) Forensic Ledger Engine',
       timestamp: new Date().toISOString(),
       merkleRoot: trace.merkleRoot,
       blockNumber: trace.blockNumber,
@@ -98,7 +99,7 @@ export const AuditorPage: React.FC = () => {
               <div className="flex flex-wrap items-center gap-2 text-xs text-on-surface-variant mt-1">
                 <span>Initiator: <strong className="text-on-surface">{trace.initiator} ({trace.initiatorId})</strong></span>
                 <span>•</span>
-                <span>Sum: <strong className="text-on-surface font-mono">${parseFloat(trace.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD</strong></span>
+                <span>Sum: <strong className="text-on-surface font-mono">{formatMoney(trace.amount, trace.currency || 'INR', true)}</strong></span>
                 <span>•</span>
                 <span>Block: <strong className="text-on-surface font-mono">#{trace.blockNumber}</strong></span>
               </div>

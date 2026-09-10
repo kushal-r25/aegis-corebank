@@ -19,11 +19,11 @@ export const TransfersPage: React.FC = () => {
   const [oneOffAccount, setOneOffAccount] = useState('');
   const [oneOffBank, setOneOffBank] = useState('');
   const [oneOffRouting, setOneOffRouting] = useState('');
-  const [oneOffCurrency, setOneOffCurrency] = useState<'USD' | 'INR'>('USD');
+  const [oneOffCurrency, setOneOffCurrency] = useState<'USD' | 'INR'>('INR');
 
   // Transfer inputs
-  const [amount, setAmount] = useState('2400.00');
-  const [note, setNote] = useState('Cloud Infrastructure & Data Services Retainer');
+  const [amount, setAmount] = useState('5000.00');
+  const [note, setNote] = useState('Invoice Payment / Family Support');
   const [error, setError] = useState<string | null>(null);
 
   // 2FA & Success modals
@@ -149,12 +149,12 @@ export const TransfersPage: React.FC = () => {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-headline-sm text-body-md font-bold text-on-surface">Mission-Critical Transfer Protocol v4.2</span>
+              <span className="font-headline-sm text-body-md font-bold text-on-surface">Secure Indian Interbank Transfer (IMPS / NEFT / RTGS)</span>
               <span className="px-2 py-0.5 rounded bg-surface-container-highest text-secondary font-label-meta text-[10px] font-bold">
                 ACID GUARD ON
               </span>
             </div>
-            <p className="text-xs text-on-surface-variant">RTGS / Fedwire Settlement Engine · Synchronous Ledger Locking Active · USD &amp; INR Supported</p>
+            <p className="text-xs text-on-surface-variant">Instant IMPS / NEFT settlement with dual-sign 2FA verification · INR &amp; USD supported</p>
           </div>
         </div>
 
@@ -184,12 +184,12 @@ export const TransfersPage: React.FC = () => {
       <form onSubmit={handleStartTransfer} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Form & Routing (7 Cols) */}
         <div className="lg:col-span-7 flex flex-col gap-6">
-          {/* Originating Account Card */}
+          {/* From Account Card */}
           <div className="p-6 bg-surface-container-lowest rounded-2xl border border-surface-container-highest shadow-sm flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-secondary text-[20px]">account_balance_wallet</span>
-                <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Originating Account</h3>
+                <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">From Account</h3>
               </div>
               <span className="px-2.5 py-0.5 rounded-full bg-surface-container-low text-secondary font-mono text-[10px] font-bold uppercase">
                 Currency: {sourceCurrency}
@@ -254,7 +254,7 @@ export const TransfersPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-secondary text-[20px]">domain</span>
-                <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Beneficiary &amp; Interbank Route</h3>
+                <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Beneficiary / Payee Details</h3>
               </div>
               <div className="flex items-center p-1 bg-surface-container-low rounded-xl border border-surface-container-highest">
                 <button
@@ -264,7 +264,7 @@ export const TransfersPage: React.FC = () => {
                     tab === 'saved' ? 'bg-surface-container-lowest text-secondary shadow-xs' : 'text-on-surface-variant hover:text-on-surface'
                   }`}
                 >
-                  SAVED BENEFICIARY
+                  SAVED BENEFICIARIES
                 </button>
                 <button
                   type="button"
@@ -273,7 +273,7 @@ export const TransfersPage: React.FC = () => {
                     tab === 'oneoff' ? 'bg-surface-container-lowest text-secondary shadow-xs' : 'text-on-surface-variant hover:text-on-surface'
                   }`}
                 >
-                  ONE-OFF WIRE
+                  ONE-TIME TRANSFER
                 </button>
               </div>
             </div>
@@ -352,7 +352,7 @@ export const TransfersPage: React.FC = () => {
                   <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">Routing / IFSC Code</label>
                   <input
                     type="text"
-                    placeholder="e.g. 021000021 or HDFC0001234"
+                    placeholder="e.g. HDFC0000128 or ICIC0000002"
                     value={oneOffRouting}
                     onChange={(e) => setOneOffRouting(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface-container-lowest border border-surface-container-highest text-xs font-mono text-on-surface focus:outline-none focus:border-secondary"
@@ -380,7 +380,7 @@ export const TransfersPage: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-surface-container-highest">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-secondary text-[20px]">payments</span>
-                <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Transfer Sum &amp; Signing</h3>
+                <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Transfer Amount &amp; 2FA</h3>
               </div>
               <span className="font-label-meta text-[10px] uppercase font-bold text-on-tertiary-container bg-tertiary-container/20 px-2 py-0.5 rounded">
                 ZERO FEE
@@ -442,7 +442,7 @@ export const TransfersPage: React.FC = () => {
                 }`}
               >
                 <span className="material-symbols-outlined text-[20px]">lock</span>
-                <span>{isCurrencyMismatch ? 'Cross-Currency Disabled' : 'Proceed to Dual-Sign 2FA'}</span>
+                <span>{isCurrencyMismatch ? 'Cross-Currency Disabled' : 'Proceed to Verify &amp; Pay'}</span>
               </button>
             </div>
           </div>

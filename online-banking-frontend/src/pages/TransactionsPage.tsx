@@ -69,13 +69,13 @@ export const TransactionsPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-label-meta uppercase text-secondary font-bold">
             <span className="material-symbols-outlined text-[18px]">receipt_long</span>
-            <span>Immutable Double-Entry Ledger Journal</span>
+            <span>Account Statement &amp; Transaction History</span>
           </div>
           <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface mt-1">
             Transactions &amp; Statements
           </h1>
           <p className="text-body-sm text-on-surface-variant mt-0.5">
-            Cryptographically timestamped transaction history supporting USD and INR ledgers.
+            Complete real-time transaction statement with category breakdowns and instant reversal.
           </p>
         </div>
 

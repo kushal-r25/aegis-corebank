@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
 import type { FraudRecord, SystemHealthMetrics } from '../types';
+import { formatMoney } from '../utils/currency';
 
 export const AdminPage: React.FC = () => {
   const [fraudRecords, setFraudRecords] = useState<FraudRecord[]>(() => api.admin.getFraudRecords());
@@ -14,14 +15,14 @@ export const AdminPage: React.FC = () => {
   };
 
   const handleApprove = (id: string) => {
-    api.admin.approveFraudRecord(id, reviewerNotes || 'Cleared by Security Officer Marcus Vance.');
+    api.admin.approveFraudRecord(id, reviewerNotes || 'Cleared by Compliance Officer Vikram Patel.');
     setSelectedCase(null);
     setReviewerNotes('');
     refresh();
   };
 
   const handleReject = (id: string) => {
-    api.admin.rejectFraudRecord(id, reviewerNotes || 'Blocked and escalated to FinCEN / AML unit.');
+    api.admin.rejectFraudRecord(id, reviewerNotes || 'Blocked and escalated to FIU-IND / RBI AML compliance unit.');
     setSelectedCase(null);
     setReviewerNotes('');
     refresh();
@@ -66,7 +67,7 @@ export const AdminPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-on-surface-variant">Instructed Sum:</span>
-                  <span className="font-mono font-bold text-error">${parseFloat(selectedCase.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD</span>
+                  <span className="font-mono font-bold text-error">{formatMoney(selectedCase.amount, selectedCase.currency || 'INR', true)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-on-surface-variant">Source Entity:</span>
@@ -141,7 +142,7 @@ export const AdminPage: React.FC = () => {
           <div className="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-xl border border-surface-container-highest text-xs">
             <span className="material-symbols-outlined text-secondary text-[18px]">admin_panel_settings</span>
             <span className="text-on-surface-variant font-medium">Operator:</span>
-            <span className="font-mono font-bold text-on-surface">admin_ops_lead</span>
+            <span className="font-mono font-bold text-on-surface">vikram_patel_ops</span>
             <span className="px-1.5 py-0.2 rounded bg-surface-container-high font-label-meta text-[9px] text-secondary font-bold uppercase">Level 3</span>
           </div>
           <div className="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-xl border border-surface-container-highest text-xs">
@@ -183,9 +184,9 @@ export const AdminPage: React.FC = () => {
           </div>
           <div className="my-3">
             <div className="font-label-numeric-lg text-2xl font-bold text-on-surface">
-              $1,428,950,200<span className="text-sm font-normal text-on-surface-variant">.00</span>
+              ₹15,28,25,00,000<span className="text-sm font-normal text-on-surface-variant">.00</span>
             </div>
-            <p className="text-[11px] text-on-surface-variant mt-0.5">USD Ledger Aggregate</p>
+            <p className="text-[11px] text-on-surface-variant mt-0.5">INR Ledger Aggregate</p>
           </div>
           <div className="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
             <div className="bg-on-tertiary-container h-full rounded-full" style={{ width: '99.998%' }}></div>

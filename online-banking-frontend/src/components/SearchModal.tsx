@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import { formatMoney } from '../utils/currency';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -71,7 +72,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                           <span className="font-semibold text-on-surface text-body-sm">{acc.nickname || acc.accountType}</span>
                           <span className="text-xs font-mono text-on-surface-variant">···· {acc.accountNumber.slice(-4)}</span>
                         </div>
-                        <span className="font-label-numeric-sm font-bold text-on-surface">${parseFloat(acc.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                        <span className="font-label-numeric-sm font-bold text-on-surface">{formatMoney(acc.balance, acc.currency)}</span>
                       </button>
                     ))}
                   </div>
@@ -120,7 +121,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                           </div>
                         </div>
                         <span className={`font-label-numeric-sm font-bold ${led.type === 'CREDIT' ? 'text-on-tertiary-container' : 'text-on-surface'}`}>
-                          {led.type === 'CREDIT' ? '+' : '-'}${parseFloat(led.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          {led.type === 'CREDIT' ? '+' : '-'}{formatMoney(led.amount, led.currency)}
                         </span>
                       </button>
                     ))}
@@ -145,7 +146,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                             <span className="font-label-numeric-sm text-[10px] text-error font-bold">Risk Score {frd.riskScore}/100</span>
                           </div>
                         </div>
-                        <span className="font-label-numeric-sm font-bold text-on-surface">${parseFloat(frd.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                        <span className="font-label-numeric-sm font-bold text-on-surface">{formatMoney(frd.amount, frd.currency)}</span>
                       </button>
                     ))}
                   </div>

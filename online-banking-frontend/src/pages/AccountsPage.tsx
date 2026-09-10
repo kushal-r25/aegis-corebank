@@ -77,13 +77,13 @@ export const AccountsPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-label-meta uppercase text-secondary font-bold">
             <span className="material-symbols-outlined text-[18px]">account_balance</span>
-            <span>Sub-Ledger Portfolio Management</span>
+            <span>Indian Digital Banking Portfolio</span>
           </div>
           <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface mt-1">
-            Accounts &amp; Sub-Ledger Balances
+            My Accounts &amp; Fixed Deposits
           </h1>
           <p className="text-body-sm text-on-surface-variant mt-0.5">
-            Real-time balance breakdown across USD &amp; INR currencies with ACID compliance.
+            Real-time balances for Savings, Salary, and Fixed Deposit accounts in INR and USD.
           </p>
         </div>
 
@@ -213,7 +213,7 @@ export const AccountsPage: React.FC = () => {
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Sub-Ledger Audit Trail</h3>
+              <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Account Statement &amp; Transaction History</h3>
               <span className="px-2 py-0.5 rounded bg-surface-container text-xs font-mono font-semibold text-on-surface-variant">
                 {accountLedger.length} Records
               </span>

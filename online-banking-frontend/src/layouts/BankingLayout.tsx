@@ -56,9 +56,9 @@ export const BankingLayout: React.FC = () => {
     // CUSTOMER default
     return [
       { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-      { path: '/accounts', label: 'Accounts & Vaults', icon: 'account_balance' },
-      { path: '/transfers', label: 'Transfers & Payments', icon: 'sync_alt' },
-      { path: '/transactions', label: 'Transactions & Statements', icon: 'receipt_long' },
+      { path: '/accounts', label: 'My Accounts', icon: 'account_balance' },
+      { path: '/transfers', label: 'Transfer Money', icon: 'sync_alt' },
+      { path: '/transactions', label: 'Recent Transactions', icon: 'receipt_long' },
       { path: '/beneficiaries', label: 'Beneficiaries', icon: 'group' },
       { path: '/scheduled-transfers', label: 'Scheduled Transfers', icon: 'schedule' },
       { path: '/security', label: 'Security & Access', icon: 'security' },
@@ -191,7 +191,7 @@ export const BankingLayout: React.FC = () => {
               className="relative hidden md:flex items-center pl-8 pr-10 py-1.5 bg-surface-container-low border border-surface-container-highest rounded-xl text-xs text-on-surface-variant hover:text-on-surface hover:border-secondary transition-colors w-60 text-left"
             >
               <span className="material-symbols-outlined absolute left-2.5 text-on-surface-variant text-[18px]">search</span>
-              <span>Search ledgers, accounts...</span>
+              <span>Search accounts, payees, transactions...</span>
               <kbd className="absolute right-2 font-label-numeric-sm text-[10px] text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded">⌘K</kbd>
             </button>
 

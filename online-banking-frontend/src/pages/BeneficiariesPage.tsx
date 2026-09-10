@@ -20,8 +20,8 @@ export const BeneficiariesPage: React.FC = () => {
   const handleOpenAdd = () => {
     setName('');
     setAccountNumber('');
-    setBankName('Aegis Institutional Treasury');
-    setRoutingCode('021000021');
+    setBankName('HDFC Bank Ltd');
+    setRoutingCode('HDFC0000128');
     setNickname('');
     setIsAddOpen(true);
   };
@@ -132,7 +132,7 @@ export const BeneficiariesPage: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. US94 AEGIS 0001 ..."
+                  placeholder="e.g. 5010-0234-8901"
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-surface-container-low border border-surface-container-highest text-xs font-mono text-on-surface focus:outline-none focus:border-secondary"
@@ -152,11 +152,11 @@ export const BeneficiariesPage: React.FC = () => {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">Routing / BIC</label>
+                  <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">IFSC Code / Routing</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. 021000021"
+                    placeholder="e.g. HDFC0000128"
                     value={routingCode}
                     onChange={(e) => setRoutingCode(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface-container-low border border-surface-container-highest text-xs font-mono text-on-surface focus:outline-none focus:border-secondary"
@@ -203,13 +203,13 @@ export const BeneficiariesPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-label-meta uppercase text-secondary font-bold">
             <span className="material-symbols-outlined text-[18px]">group</span>
-            <span>Interbank Counterparty Management</span>
+            <span>Manage Beneficiaries &amp; Payees</span>
           </div>
           <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface mt-1">
             Beneficiaries Directory
           </h1>
           <p className="text-body-sm text-on-surface-variant mt-0.5">
-            Verified institutional payees, Fedwire routing codes, and corporate settlement profiles.
+            Manage saved Indian bank accounts, IFSC codes, and verified payees.
           </p>
         </div>
 
@@ -281,7 +281,7 @@ export const BeneficiariesPage: React.FC = () => {
                   <span className="font-semibold text-on-surface truncate max-w-[170px]">{ben.bankName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-on-surface-variant font-label-meta text-[10px]">Routing / BIC:</span>
+                  <span className="text-on-surface-variant font-label-meta text-[10px]">IFSC Code / Routing:</span>
                   <span className="font-mono font-bold text-on-surface">{ben.routingCode}</span>
                 </div>
               </div>

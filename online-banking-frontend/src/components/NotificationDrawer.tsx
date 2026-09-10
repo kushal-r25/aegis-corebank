@@ -21,7 +21,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
       id: 'notif-2',
       title: 'Dual-Sign Security Challenge Pass',
       time: '18 minutes ago',
-      desc: 'Hardware 2FA challenge signed for wire settlement to Horizon Logistics LLC.',
+      desc: 'Hardware 2FA challenge signed for wire settlement to Infosys Technologies Ltd.',
       type: 'info',
       icon: 'lock',
     },
@@ -37,7 +37,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
       id: 'notif-4',
       title: 'Interest Yield Auto-Compounded',
       time: '8 hours ago',
-      desc: '+$814.20 USD credited to High-Yield Treasury Vault at 4.85% APY rate.',
+      desc: '+₹17,750.00 INR credited to Fixed Deposit (12M) at 7.10% p.a. rate.',
       type: 'success',
       icon: 'trending_up',
     },
@@ -73,7 +73,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
 
         <div className="p-4 border-t border-surface-container-highest bg-surface-container-low">
           <div className="flex items-center justify-between text-xs text-on-surface-variant">
-            <span>Node: PROD-US-EAST</span>
+            <span>Node: PROD-IND-SOUTH (Bengaluru Edge)</span>
             <span className="font-label-meta font-bold text-on-tertiary-container uppercase">TLS 1.3 ACTIVE</span>
           </div>
         </div>
