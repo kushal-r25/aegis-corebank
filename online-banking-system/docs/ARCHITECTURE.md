@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary & Design Principles
 
-Aegis CoreBank is an institutional-grade, high-concurrency online banking and treasury platform built with Java 21, Spring Boot 3.5+, Apache Kafka, Redis 7, and PostgreSQL 17. The system is engineered to guarantee strict **ACID transactional integrity**, **deterministic concurrency control**, **immutable double-entry ledger journals**, and **zero-loss event-driven integration**.
+Aegis CoreBank is an production-grade, high-concurrency Indian digital banking platform built with Java 21, Spring Boot 3.5+, Apache Kafka, Redis 7, and PostgreSQL 17. The system is engineered to guarantee strict **ACID transactional integrity**, **deterministic concurrency control**, **immutable double-entry ledger journals**, and **zero-loss event-driven integration**.
 
 ### Core Tenets
 1. **PostgreSQL as Sole Authoritative State**: Every balance mutation, ledger entry, outbox record, and saga execution is atomically committed to PostgreSQL.

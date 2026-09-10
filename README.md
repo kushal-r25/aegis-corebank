@@ -1,4 +1,4 @@
-# Aegis CoreBank — India-First Digital Online Banking Platform
+# Aegis CoreBank — Indian Digital Banking Platform
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-success?style=for-the-badge&logo=github)](https://kushal-r25.github.io/aegis-corebank/)
 [![Deploy on Render](https://img.shields.io/badge/Deploy%20to-Render-46E3B7?style=for-the-badge&logo=render)](https://render.com/deploy?repo=https://github.com/kushal-r25/aegis-corebank)
@@ -15,25 +15,28 @@
 
 > **Live Public Demonstration**: [**`https://kushal-r25.github.io/aegis-corebank/`**](https://kushal-r25.github.io/aegis-corebank/)
 
-Aegis CoreBank is a modern, India-first digital online banking platform engineered with high concurrency, strict ACID financial guarantees, deadlock-free deterministic pessimistic row locking, transactional outbox event delivery, Kafka saga orchestration, and double-entry immutable ledger journaling. It is engineered with strict ACID financial guarantees, deadlock-free deterministic pessimistic row locking, transactional outbox event delivery, Kafka saga orchestration, and double-entry immutable ledger journaling.
+Aegis CoreBank is a modern, India-first digital online banking platform engineered with high concurrency, strict ACID financial guarantees, deadlock-free deterministic pessimistic row locking, transactional outbox event delivery, Kafka saga orchestration, and double-entry immutable ledger journaling.
 
-> **System Classification**: **`Production-Style India-First Digital Banking Portfolio / Reference Implementation`**  
-> *Engineered to model high-throughput settlement, auditability, and safety requirements of institutional treasury engines without client-side state assumptions or hidden mocks.*
+> **System Classification**: **`Production-Style India-First Digital Banking Portfolio / Reference Implementation`**
+> *Engineered to model high-throughput settlement, auditability, and safety requirements of core banking engines without client-side state assumptions or hidden mocks.*
 
 ---
 
-## 1. Highlights
+## 1. Key Highlights
 
-- **Multi-Currency Domain Modeling**: Real domain-level multi-currency architecture supporting **US Dollar (USD / $)** and **Indian Rupee (INR / ₹)** with strict balance segregation, ISO-4217 validation, and Indian numbering formatting (`₹1,00,000.00`).
+- **India-First Banking Experience**: Primary **Indian Rupee (INR / ₹)** domain currency with standard Indian numbering formatting (`₹1,85,450.00`, `₹10,00,000.00`), Savings Account, Salary Account, Fixed Deposit, and Instant IMPS/NEFT transfer workflows.
+- **Multi-Currency Domain Modeling**: Real domain-level multi-currency architecture supporting **Indian Rupee (INR / ₹)** and secondary **US Dollar (USD / $)** with strict balance segregation and ISO-4217 validation.
 - **Conservation of Money & No-FX Invariant**: Enforced at the PostgreSQL level via `CONSTRAINT chk_balance_nonneg CHECK (balance >= 0)` and Java `BigDecimal`. Cross-currency transfers without real FX conversion are strictly rejected with HTTP 422 `CurrencyMismatchException` to guarantee zero unauthorized balance distortion.
-- **Deadlock-Free Pessimistic Locking**: Deterministic lexicographical UUID lock ordering eliminates cyclic wait deadlocks during concurrent bidirectional transfers ($A \rightarrow B$ and $B \rightarrow A$).
+- **Deadlock-Free Pessimistic Locking**: Deterministic lexicographical UUID lock ordering (`UUID.compareTo()`) eliminates cyclic wait deadlocks during concurrent bidirectional transfers ($A
+ightarrow B$ and $B
+ightarrow A$).
 - **Database-Level Idempotency**: PostgreSQL `UNIQUE (idempotency_key)` constraint with sub-transaction isolation (`PROPAGATION_REQUIRES_NEW`) safely handles concurrent duplicate retries.
 - **Transactional Outbox Pattern**: Entity mutations and `outbox_events` are committed in the same atomic database transaction, guaranteeing zero message loss across Kafka broker partitions.
 - **Kafka Consumer Deduplication**: Message IDs recorded in `processed_events` table before applying mutations, providing exactly-once processing semantics over at-least-once transport.
-- **Compensating Saga Reversals**: Asynchronous transfer saga with automated compensating double-entry refunds (`REVERSAL_CREDIT`) upon failure or auditor review.
+- **Compensating Saga Reversals**: Asynchronous transfer saga with automated compensating double-entry refunds (`REVERSAL_CREDIT`) upon failure or compliance review.
 - **Immutable Double-Entry Sub-Ledger**: Append-only `ledger_entries` journal maintaining complete running snapshot balances for every financial mutation.
-- **Institutional Access Control**: Multi-tenant RBAC with granular roles (`CUSTOMER`, `ADMIN`, `AUDITOR`) and dual-factor (2FA) OTP verification.
-- **Dual-Mode Client**: Production Stitch-designed React 19 SPA operating in **LIVE API Mode** with an explicit developer fallback toggle.
+- **Access Control & Security**: Multi-tenant RBAC with granular roles (`CUSTOMER`, `ADMIN`, `AUDITOR`) and dual-factor (2FA) OTP verification.
+- **Dual-Mode Client**: Production React 19 SPA operating in **LIVE API Mode** with an explicit developer demo simulation toggle.
 
 ---
 
@@ -41,7 +44,7 @@ Aegis CoreBank is a modern, India-first digital online banking platform engineer
 
 ```
                                   +-----------------------------------------------+
-                                  |   React 19 / TypeScript Institutional Client  |
+                                  |    React 19 / TypeScript Digital Banking UI   |
                                   |              (Vite / Port 5173)               |
                                   +-----------------------+-----------------------+
                                                           |
@@ -88,12 +91,11 @@ Aegis CoreBank is a modern, India-first digital online banking platform engineer
 ## 4. Financial Engineering & Concurrency Control
 
 ### Multi-Currency System & Financial Invariants
-Aegis CoreBank supports institutional multi-currency operations across **USD ($)** and **INR (₹)**:
+Aegis CoreBank supports multi-currency operations across **INR (₹)** and **USD ($)**:
 - **Real Domain Value**: Currency is modeled directly across PostgreSQL entities (`accounts`, `ledger_entries`, `transactions`, `scheduled_transfers`), REST DTOs, Kafka events, and React state.
 - **Strict Balance Segregation**: Balances in different currencies are never combined or converted with arbitrary rates. The dashboard displays distinct aggregate liquidity per currency.
 - **Cross-Currency Validation**: Transfer Sagas validate currency parity before acquiring row locks or debiting funds. Mismatched transfers are rejected with `HTTP 422 Unprocessable Entity` (`CurrencyMismatchException`).
-- **Database CHECK Constraints**: Non-destructive Flyway V2 migrations enforce `CHECK (currency IN ('USD', 'INR'))` at the relational database level.
-
+- **Database CHECK Constraints**: Non-destructive Flyway migrations enforce `CHECK (currency IN ('USD', 'INR'))` at the relational database level.
 
 1. **Precision & Money Math**: All monetary amounts use Java `BigDecimal` and PostgreSQL `NUMERIC(19,4)`. Floating-point arithmetic (`float`/`double`) is strictly prohibited to prevent IEEE 754 precision drift.
 2. **Deadlock-Free Deterministic Row Locking**: All multi-account transfer operations sort account UUIDs (`UUID.compareTo()`) before acquiring `SELECT ... FOR UPDATE` row locks, mathematically preventing cyclic wait deadlocks.
@@ -137,14 +139,14 @@ sequenceDiagram
 - **Role-Based Access Control (RBAC)**:
   - `CUSTOMER`: Access to personal accounts, transfers, beneficiaries, and scheduled payments.
   - `ADMIN`: Real-time fraud queue review, risk scoring, account freeze/unfreeze controls.
-  - `AUDITOR`: Forensic Merkle trace inspection, outbox event history, SOC-2 audit logs.
+  - `AUDITOR`: Forensic Merkle trace inspection, outbox event history, audit logs.
 - **Resource Ownership Validation**: Controller filters reject cross-customer access attempts with HTTP `403 Forbidden`.
 
 ---
 
-## 7. Institutional Frontend Platform
+## 7. Digital Banking Frontend
 
-The frontend is a production-style Single Page Application (SPA) built with **React 19**, **TypeScript 5.7**, **Vite 8.2**, and **Tailwind CSS 3.4**:
+The frontend is a modern Single Page Application (SPA) built with **React 19**, **TypeScript 5.7**, **Vite 8.2**, and **Tailwind CSS 3.4**:
 - **Dual Execution Engine**:
   - **LIVE API Mode (Default)**: Direct communication with microservices on ports `8081`–`8084` with real JWT authentication and dynamic MFA challenges.
   - **DEMO SIMULATION Mode**: Explicit offline simulation toggle for disconnected presentations.
@@ -164,30 +166,12 @@ The frontend is a production-style Single Page Application (SPA) built with **Re
 
 ### Test Suite Summary
 - **Backend Reactor Suite**: `mvn clean test` compiles and passes all unit, concurrency, and integration tests across all 9 Maven modules.
-- **Frontend Production Build**: `npm run build` compiles with **0 TypeScript errors, 0 warnings** in 1.42s.
-- **Automated 20-Stage Journey Test**: `verify_journey.cjs` validates the complete banking lifecycle and security probes against real PostgreSQL, Kafka, and Redis.
+- **Frontend Production Build**: `npm run build` compiles with **0 TypeScript errors, 0 warnings** in ~1s.
+- **Automated Verification**: Validates the complete banking lifecycle and security invariants against PostgreSQL, Kafka, and Redis.
 
 ---
 
-## 10. UI Showcase & Screenshots
-
-The platform includes genuine high-resolution enterprise UI specifications designed for institutional banking:
-
-| Customer Dashboard | Account Portfolio & Ledger |
-| :---: | :---: |
-| ![Customer Dashboard](stitch_corebank_enterprise_ui_platform/customer_banking_dashboard/screen.png) | ![Account Portfolio](stitch_corebank_enterprise_ui_platform/account_details_state_management/screen.png) |
-
-| Wire Transfer Wizard & 2FA | Beneficiary Directory & Reversals |
-| :---: | :---: |
-| ![Wire Transfer](stitch_corebank_enterprise_ui_platform/money_transfer_security_verification/screen.png) | ![Beneficiary & Reversal](stitch_corebank_enterprise_ui_platform/beneficiary_management_transaction_reversal/screen.png) |
-
-| Admin AML Fraud Operations | Auditor Forensics & Merkle Trace |
-| :---: | :---: |
-| ![Admin Operations](stitch_corebank_enterprise_ui_platform/admin_operations_fraud_monitoring_dashboard/screen.png) | ![Auditor Forensics](stitch_corebank_enterprise_ui_platform/auditor_transaction_investigation_traceability/screen.png) |
-
----
-
-## 11. Quick Start
+## 10. Quick Start
 
 ### Prerequisites
 - **Java Development Kit (JDK)**: Java 21 LTS
@@ -227,10 +211,11 @@ Open **`http://localhost:5173`** in your browser.
 
 ---
 
-## 12. Complete Documentation Index
+## 11. Complete Documentation Index
 
 In-depth technical specifications are available in the [`docs/`](docs/) directory:
 
+- [**India-First Transformation Report**](docs/INDIA_FIRST_TRANSFORMATION_REPORT.md)
 - [**System Architecture & Concurrency Model**](docs/ARCHITECTURE.md)
 - [**Complete REST API Reference**](docs/API.md)
 - [**Relational Database Schema & ERD**](docs/DATABASE_SCHEMA.md)
@@ -239,25 +224,20 @@ In-depth technical specifications are available in the [`docs/`](docs/) director
 - [**Project Completion Status**](docs/PROJECT_COMPLETION_STATUS.md)
 - [**Final Release Checklist**](docs/FINAL_RELEASE_CHECKLIST.md)
 - [**Final Release Sign-Off**](docs/FINAL_RELEASE_SIGN_OFF.md)
-- [**Master Release Archive Verification (Step 2)**](docs/STEP_2_ARCHIVE_VERIFICATION.md)
-- [**Real Machine Verification Report (Step 3)**](docs/STEP_3_REAL_MACHINE_VERIFICATION.md)
-- [**Frontend UI Verification Report (Step 4)**](docs/STEP_4_FRONTEND_UI_VERIFICATION.md)
-- [**GitHub Portfolio Readiness Audit (Step 5)**](docs/STEP_5_GITHUB_PORTFOLIO_READINESS.md)
-- [**GitHub Preparation Report (Step 7)**](docs/STEP_7_GITHUB_PREPARATION.md)
 
 ---
 
-## 13. Project Limitations & Reference Disclaimers
+## 12. Project Limitations & Reference Disclaimers
 
 This platform is a **portfolio reference implementation** and differs from regulated production banking in the following ways:
+- **Reference Portfolio Implementation**: This project is a technical reference architecture demonstration. It does not connect to live NPCI/UPI, RBI, Aadhaar/PAN, or live commercial bank settlement rails.
 - **Test OTP Bypass**: A deterministic master code (`123456`) is accepted alongside dynamic OTP codes to enable automated integration test execution without physical SMS hardware.
 - **Notification Sink**: `notification-service` logs multi-channel dispatches in an in-memory queue rather than calling paid third-party SMS/Email gateways.
 - **Service Ingress**: Microservices listen directly on allocated local ports (`8081`–`8084`) for developer simplicity; enterprise production setups should front them with Spring Cloud Gateway or Kubernetes Ingress.
-- **Internal REST Paths**: `/internal/**` REST endpoints are configured with permitAll for local demonstration, standing in for mTLS or Kubernetes NetworkPolicy isolation in enterprise clusters.
 
 ---
 
-## 14. System Design & Interview Talking Points
+## 13. System Design & Interview Talking Points
 
 - **Why Pessimistic Locking over Optimistic Locking for Transfers?** High-velocity account draining causes excessive optimistic rollback exceptions (`OptimisticLockException`). Deterministic pessimistic locking ensures high concurrency with predictable latency and zero deadlocks.
 - **Why Orchestrated Saga over Choreographed Saga?** Orchestrated sagas keep transaction state, failure recovery, and compensating reversals in a centralized, auditable state machine rather than distributed across multiple event consumers.
@@ -266,7 +246,7 @@ This platform is a **portfolio reference implementation** and differs from regul
 
 ---
 
-## 15. Repository Structure
+## 14. Repository Structure
 
 ```
 .
@@ -274,17 +254,16 @@ This platform is a **portfolio reference implementation** and differs from regul
 ├── .gitignore                     # Multi-stack ignore rules for build outputs & secrets
 ├── README.md                      # Master repository showcase documentation
 ├── docs/                          # Complete architectural & operational documentation
-├── online-banking-frontend/       # React 19 / TypeScript Institutional UI
+├── online-banking-frontend/       # React 19 / TypeScript Digital Banking UI
 │   ├── src/                       # Components, context, pages, services
 │   ├── package.json               # Dependencies and build scripts
 │   └── vite.config.ts             # Vite configuration
-├── online-banking-system/         # Maven Multi-Module Java 21 Distributed Backend
-│   ├── pom.xml                    # Root Reactor POM
-│   ├── docker-compose.yml         # Containerized infrastructure topology
-│   ├── common/                    # Shared DTO, Exception, Kafka, Security modules
-│   ├── auth-service/              # Port 8081: Authentication & 2FA Service
-│   ├── account-service/           # Port 8082: Account Management & Ledger
-│   ├── transaction-service/       # Port 8083: Transfer Saga & Fraud Engine
-│   └── notification-service/      # Port 8084: Multi-Channel Consumer
-└── stitch_corebank_enterprise_ui_platform/ # UI Specifications & Visual Assets
+└── online-banking-system/         # Maven Multi-Module Java 21 Distributed Backend
+    ├── pom.xml                    # Root Reactor POM
+    ├── docker-compose.yml         # Containerized infrastructure topology
+    ├── common/                    # Shared DTO, Exception, Kafka, Security modules
+    ├── auth-service/              # Port 8081: Authentication & 2FA Service
+    ├── account-service/           # Port 8082: Account Management & Ledger
+    ├── transaction-service/       # Port 8083: Transfer Saga & Fraud Engine
+    └── notification-service/      # Port 8084: Multi-Channel Consumer
 ```

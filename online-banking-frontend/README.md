@@ -1,6 +1,6 @@
 # Aegis CoreBank — Institutional Frontend Client
 
-Production-style Single Page Application (SPA) for **Aegis CoreBank**, built with React 19, TypeScript, and Vite. Designed to provide institutional treasury and banking clients with real-time multi-vault liquidity management, dual-sign transfer authorization, double-entry audit journals, fraud review queues, and forensic Merkle trace inspection.
+Production-style Single Page Application (SPA) for **Aegis CoreBank**, built with React 19, TypeScript, and Vite. Designed to provide Indian retail and business customers with real-time accounts management, instant fund transfers, fixed deposits, dual-sign transfer authorization, double-entry audit journals, fraud review queues, and forensic Merkle trace inspection.
 
 ---
 

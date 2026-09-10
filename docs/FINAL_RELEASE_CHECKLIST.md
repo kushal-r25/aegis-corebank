@@ -1,6 +1,6 @@
 # Aegis CoreBank: Final Release Checklist & Production Audit
 
-This checklist documents the final verification and readiness state of the **Aegis CoreBank Enterprise Online Banking & Treasury Platform** for portfolio presentation and GitHub release.
+This checklist documents the final verification and readiness state of the **Aegis CoreBank Indian Digital Banking Platform** for portfolio presentation and GitHub release.
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## 1. System Identification & Classification
 
-- **System Name**: Aegis CoreBank Enterprise Banking & Treasury Platform
+- **System Name**: Aegis CoreBank Enterprise Banking & Digital Banking Platform
 - **System Classification**: **`Production-Style Institutional Banking & Treasury Portfolio / Reference Implementation`**
 - **Architecture**: Modular Distributed Microservices Architecture with Transactional Outbox and Event-Driven Saga Settlement
 - **Technology Stack**:

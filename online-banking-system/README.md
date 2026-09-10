@@ -1,6 +1,6 @@
 # Aegis CoreBank — Distributed Backend Services
 
-Distributed, event-driven institutional banking backend built with Java 21 LTS, Spring Boot 3.5.5, PostgreSQL 17, Redis 7, Apache Kafka, and Docker Compose. Features 4 domain microservices, Saga-orchestrated transfers, deterministic pessimistic row locking, idempotent transactional outbox processing, and immutable double-entry sub-ledger accounting.
+Distributed, event-driven digital banking backend built with Java 21 LTS, Spring Boot 3.5.5, PostgreSQL 17, Redis 7, Apache Kafka, and Docker Compose. Features 4 domain microservices, Saga-orchestrated transfers, deterministic pessimistic row locking, idempotent transactional outbox processing, and immutable double-entry sub-ledger accounting.
 
 ## Services
 
@@ -36,9 +36,9 @@ Flyway migrates each service's DB on startup — no manual schema setup needed.
 
 ```bash
 # Register + login (returns an OTP session id; OTP is logged to auth-service console)
-curl -X POST "localhost:8081/auth/register?username=alice&password=pass123"
+curl -X POST "localhost:8081/auth/register?username=rahul&password=pass123"
 curl -X POST localhost:8081/auth/login -H 'Content-Type: application/json' \
-  -d '{"username":"alice","password":"pass123"}'
+  -d '{"username":"rahul","password":"pass123"}'
 # -> grab the 6-digit code from auth-service logs, then:
 curl -X POST localhost:8081/auth/verify-otp -H 'Content-Type: application/json' \
   -d '{"otpSessionId":"<from above>","code":"<from logs>"}'

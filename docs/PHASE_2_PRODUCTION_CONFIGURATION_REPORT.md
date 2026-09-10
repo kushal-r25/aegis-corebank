@@ -81,14 +81,14 @@ ightarrow-> Nginx Alpine).
 ```mermaid
 graph TD
     User([Public Client Browser]) -->|HTTP :80 / HTTPS :443| Nginx[Nginx Gateway Ingress]
-    
+
     subgraph Private Docker Network: aegis-prod-net
         Nginx -->|/| Frontend[React SPA Frontend Container]
         Nginx -->|/api/auth/*| AuthSvc[auth-service :8081]
         Nginx -->|/api/accounts/*| AccSvc[account-service :8082]
         Nginx -->|/api/transfers/*| TxnSvc[transaction-service :8083]
         Nginx -->|/api/notifications/*| NotifSvc[notification-service :8084]
-        
+
         AuthSvc --> PGAuth[(PostgreSQL auth_db :5432)]
         AccSvc --> PGAcc[(PostgreSQL account_db :5432)]
         AccSvc --> Redis[(Redis Cache :6379)]

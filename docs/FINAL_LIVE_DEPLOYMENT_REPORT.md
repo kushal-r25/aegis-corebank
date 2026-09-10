@@ -4,7 +4,7 @@
 
 ## 1. Executive Summary
 
-Aegis CoreBank has completed **Final Live Public Deployment** as a genuinely **$0.00 Free** institutional online banking and treasury portfolio platform. 
+Aegis CoreBank has completed **Final Live Public Deployment** as a genuinely **$0.00 Free** institutional online banking and treasury portfolio platform.
 
 - **Live Public URL**: [**https://kushal-r25.github.io/aegis-corebank/**](https://kushal-r25.github.io/aegis-corebank/)
 - **1-Click Backend Deploy**: [**Render.com Blueprint**](https://render.com/deploy?repo=https://github.com/kushal-r25/aegis-corebank) (`render.yaml`)
@@ -87,8 +87,8 @@ The public deployment was validated against the live HTTPS frontend and backend 
 - OTP verification (`POST /api/auth/verify-otp`) validates session and returns cryptographically signed JWT token.
 
 ### 3. Multi-Currency Operations (USD & INR)
-- Created dedicated INR checking account (`₹`) with zero balance distortion.
-- Created dedicated USD checking account (`$`).
+- Created dedicated INR savings account (`₹`) with zero balance distortion.
+- Created dedicated USD savings account (`$`).
 - Liquidity deposit of `₹50,000.00` correctly formatted using Indian numbering system (`₹50,000.00`).
 - Cross-currency transfer attempt (USD -> INR) returned expected **HTTP 422 Unprocessable Entity** (`CurrencyMismatchException`).
 

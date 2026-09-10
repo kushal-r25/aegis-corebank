@@ -159,11 +159,11 @@ export const api = {
         currency: account.currency || 'USD',
         type: 'CREDIT',
         status: 'SETTLED',
-        description: description || 'Immediate Liquidity Inbound Deposit',
+        description: description || 'Self Account Deposit',
         timestamp: new Date().toISOString(),
         correlationId: `corr-dep-${Math.random().toString(36).substring(2, 7)}`,
         balanceAfter: newBal,
-        counterparty: 'Direct Liquidity Terminal',
+        counterparty: 'Cash Deposit Counter / Branch',
         category: 'Deposit',
       };
 
@@ -173,7 +173,7 @@ export const api = {
 
       tryBackendSync(httpClient.post(`${SERVICE_URLS.ACCOUNT}/accounts/${accountId}/deposit`, {
         amount: amountNum,
-        description: description || 'Immediate Liquidity Inbound Deposit',
+        description: description || 'Self Account Deposit',
         idempotencyKey: `dep-${Date.now()}`,
       }));
 
@@ -207,11 +207,11 @@ export const api = {
         currency: account.currency || 'USD',
         type: 'DEBIT',
         status: 'SETTLED',
-        description: description || 'Authorized Vault Cash/Liquidity Withdrawal',
+        description: description || 'Self Account Withdrawal',
         timestamp: new Date().toISOString(),
         correlationId: `corr-wth-${Math.random().toString(36).substring(2, 7)}`,
         balanceAfter: newBal,
-        counterparty: 'Liquidity Disbursement Rail',
+        counterparty: 'ATM / Branch Cash Counter',
         category: 'Withdrawal',
       };
 
@@ -221,7 +221,7 @@ export const api = {
 
       tryBackendSync(httpClient.post(`${SERVICE_URLS.ACCOUNT}/accounts/${accountId}/withdraw`, {
         amount: amountNum,
-        description: description || 'Authorized Vault Cash/Liquidity Withdrawal',
+        description: description || 'Self Account Withdrawal',
         idempotencyKey: `wth-${Date.now()}`,
       }));
 

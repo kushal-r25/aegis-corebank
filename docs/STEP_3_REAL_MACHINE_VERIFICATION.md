@@ -50,7 +50,7 @@ The verification was conducted directly against the clean extracted project sour
 ```
 [INFO] ------------------------------------------------------------------------
 [INFO] Reactor Summary for online-banking-system 1.0.0:
-[INFO] 
+[INFO]
 [INFO] online-banking-system .............................. SUCCESS [  0.625 s]
 [INFO] common-dto ......................................... SUCCESS [  4.084 s]
 [INFO] common-kafka ....................................... SUCCESS [  1.860 s]

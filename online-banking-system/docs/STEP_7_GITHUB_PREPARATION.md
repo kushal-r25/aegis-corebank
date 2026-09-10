@@ -1,12 +1,12 @@
 # Aegis CoreBank — Step 7 GitHub Preparation Report
 
-This report documents the final GitHub portfolio repository preparation, file tree staging verification, CI/CD workflow validation, and publication instructions for the **Aegis CoreBank Institutional Online Banking & Treasury Platform**.
+This report documents the final GitHub portfolio repository preparation, file tree staging verification, CI/CD workflow validation, and publication instructions for the **Aegis CoreBank Indian Digital Banking Platform**.
 
 ---
 
 ## A. Repository Root
 - **Project Root Directory**: `c:\Users\User\OneDrive\Desktop\KUSHAL PROJECTS\AI - Projects\Chatgpt - Online Banking System`
-- **Branding & Repository Name**: **Aegis CoreBank** (Enterprise Online Banking & Treasury Platform)
+- **Branding & Repository Name**: **Aegis CoreBank** (Indian Digital Banking Platform)
 - **Repository Classification**: **`Production-Style Institutional Banking & Treasury Portfolio / Reference Implementation`**
 
 ---
@@ -162,7 +162,7 @@ To publish this repository to your GitHub account:
 git add .
 
 # 2. Create the initial release commit
-git commit -m "feat(release): Aegis CoreBank institutional banking & treasury platform master release"
+git commit -m "feat(release): Aegis CoreBank institutional banking & digital banking platform master release"
 
 # 3. Rename branch to main
 git branch -M main

@@ -1,6 +1,6 @@
 # Aegis CoreBank — Step 5 GitHub Portfolio Readiness Audit Report
 
-This report documents the exhaustive repository hygiene, secret scan, architectural accuracy, documentation consistency, and GitHub portfolio presentation audit for the **Aegis CoreBank Institutional Online Banking & Treasury Platform**.
+This report documents the exhaustive repository hygiene, secret scan, architectural accuracy, documentation consistency, and GitHub portfolio presentation audit for the **Aegis CoreBank Indian Digital Banking Platform**.
 
 ---
 
@@ -29,7 +29,7 @@ This report documents the exhaustive repository hygiene, secret scan, architectu
 
 ## C. README Quality & Portfolio Presentation
 - **Master README** (`README.md`):
-  - Clear institutional branding: **Aegis CoreBank — Institutional Online Banking & Treasury Platform**.
+  - Clear institutional branding: **Aegis CoreBank — Indian Digital Banking Platform**.
   - Honest classification: **`Production-Style Institutional Banking & Treasury Portfolio / Reference Implementation`**.
   - Detailed system architecture diagram illustrating all 4 Spring Boot microservices, 3 isolated PostgreSQL databases, Redis 7 cache-aside layer, and Apache Kafka outbox broker.
   - Complete technology stack badges (Java 21 LTS, Spring Boot 3.5.5, Spring Security 6.1+, React 19, TypeScript, PostgreSQL 17, Apache Kafka 3.7+, Redis 7, Docker Compose).

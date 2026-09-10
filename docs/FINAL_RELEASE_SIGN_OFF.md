@@ -1,11 +1,11 @@
 # Aegis CoreBank — Step 6 Final Release Package & Sign-Off Report
 
-This document records the final executive engineering sign-off, packaging verification, and release integrity audit for the **Aegis CoreBank Institutional Online Banking & Treasury Platform**.
+This document records the final executive engineering sign-off, packaging verification, and release integrity audit for the **Aegis CoreBank Indian Digital Banking Platform**.
 
 ---
 
 ## A. Final Project Name
-**Aegis CoreBank** (Enterprise Online Banking & Treasury Platform)
+**Aegis CoreBank** (Indian Digital Banking Platform)
 
 ---
 

@@ -222,11 +222,11 @@ SELECT id, account_id, amount, entry_type, balance_after, description FROM ledge
 1. Navigate to **Customer Dashboard**.
 2. Observe the segregated liquidity cards:
    - **USD Commercial Reserve**: `$227,890.50 USD`
-   - **INR Treasury Liquidity Reserve**: `₹2,50,000.00 INR`
+   - **INR Primary Savings Account**: `₹2,50,000.00 INR`
 
 ### 8.2 Executing INR Intra-Bank Transfers
 1. Navigate to **Transfers & Wires**.
-2. Select **INR Treasury Liquidity Reserve** (`₹2,50,000.00 INR`) as the source account.
+2. Select **INR Primary Savings Account** (`₹2,50,000.00 INR`) as the source account.
 3. Select an INR beneficiary (e.g. **Tata Consultancy Services Domestic Reserve**).
 4. Enter transfer amount: `50000.00`.
 5. Authenticate with 2FA OTP `123456`.
