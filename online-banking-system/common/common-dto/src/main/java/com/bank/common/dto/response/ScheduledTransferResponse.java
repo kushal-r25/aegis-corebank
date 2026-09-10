@@ -15,5 +15,10 @@ public record ScheduledTransferResponse(
         String status,
         Instant nextExecutionTime,
         Instant lastExecutionTime,
-        Instant createdAt
-) {}
+        Instant createdAt,
+        String currency
+) {
+    public ScheduledTransferResponse(UUID id, UUID userId, UUID fromAccountId, UUID toAccountId, BigDecimal amount, String frequency, String description, String status, Instant nextExecutionTime, Instant lastExecutionTime, Instant createdAt) {
+        this(id, userId, fromAccountId, toAccountId, amount, frequency, description, status, nextExecutionTime, lastExecutionTime, createdAt, "USD");
+    }
+}

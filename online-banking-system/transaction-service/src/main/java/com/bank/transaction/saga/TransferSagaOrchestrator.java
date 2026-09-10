@@ -3,15 +3,23 @@ package com.bank.transaction.saga;
 import com.bank.common.dto.events.TransferCompletedEvent;
 import com.bank.common.dto.events.TransferFailedEvent;
 import com.bank.common.dto.events.TransferInitiatedEvent;
+import com.bank.common.dto.events.TransferReversedEvent;
 import com.bank.common.dto.request.TransferRequest;
+import com.bank.common.dto.response.AccountResponse;
+import com.bank.common.exceptions.CurrencyMismatchException;
 import com.bank.common.exceptions.InsufficientFundsException;
 import com.bank.common.exceptions.TransferBlockedException;
 import com.bank.common.kafka.KafkaTopics;
 import com.bank.transaction.client.AccountServiceClient;
+import com.bank.transaction.entity.FraudRecord;
+import com.bank.transaction.entity.ProcessedEvent;
 import com.bank.transaction.entity.Transaction;
+import com.bank.transaction.repository.FraudRecordRepository;
+import com.bank.transaction.repository.ProcessedEventRepository;
 import com.bank.transaction.repository.TransactionRepository;
 import com.bank.transaction.service.AuditService;
 import com.bank.transaction.service.FraudRuleEngine;
+import com.bank.transaction.service.IdempotencyClaimService;
 import com.bank.transaction.service.OutboxService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +28,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -30,12 +38,6 @@ import java.util.UUID;
  * State machine:
  *   INITIATED -> RESERVED -> COMPLETED
  *                    \-> COMPENSATED (credit step failed; debit is refunded)
- *
- * Step 1 (reserve funds / debit) is SYNCHRONOUS so the caller gets an immediate
- * success/failure response instead of polling. Step 2 (credit) is ASYNCHRONOUS via
- * Kafka + the transactional outbox, since by that point money has already left the
- * source account and eventual consistency is an acceptable tradeoff — if it fails,
- * we compensate by refunding.
  */
 @Slf4j
 @Service
@@ -47,15 +49,15 @@ public class TransferSagaOrchestrator {
     private final AccountServiceClient accountClient;
     private final FraudRuleEngine fraudRuleEngine;
     private final AuditService auditService;
-    private final com.bank.transaction.repository.FraudRecordRepository fraudRecordRepo;
-    private final com.bank.transaction.repository.ProcessedEventRepository processedEventRepo;
-    private final com.bank.transaction.service.IdempotencyClaimService idempotencyClaimService;
+    private final FraudRecordRepository fraudRecordRepo;
+    private final ProcessedEventRepository processedEventRepo;
+    private final IdempotencyClaimService idempotencyClaimService;
     private final ObjectMapper objectMapper;
 
     @Transactional
     public Transaction initiateTransfer(TransferRequest req) {
         // Step 1: Atomic idempotency claim in an isolated transaction boundary (REQUIRES_NEW)
-        com.bank.transaction.service.IdempotencyClaimService.ClaimResult claim = idempotencyClaimService.claimOrGet(req);
+        IdempotencyClaimService.ClaimResult claim = idempotencyClaimService.claimOrGet(req);
         Transaction txn = claim.transaction();
 
         if (!claim.isNewClaim()) {
@@ -66,7 +68,26 @@ public class TransferSagaOrchestrator {
 
         auditService.record(txn.getId(), "TRANSFER_INITIATED", req);
 
-        // Fraud / limit check before touching money
+        // Step 2: Validate account existence and currency match
+        AccountResponse fromAccount = accountClient.getAccount(req.fromAccountId());
+        AccountResponse toAccount = accountClient.getAccount(req.toAccountId());
+
+        if (fromAccount != null && toAccount != null) {
+            String srcCurrency = fromAccount.currency() != null ? fromAccount.currency() : "USD";
+            String tgtCurrency = toAccount.currency() != null ? toAccount.currency() : "USD";
+
+            if (!srcCurrency.equalsIgnoreCase(tgtCurrency)) {
+                txn.setStatus("FAILED");
+                txn.setCurrency(srcCurrency);
+                txn.setFailureReason("Cross-currency transfers are not supported without FX conversion (Source: " + srcCurrency + ", Destination: " + tgtCurrency + ")");
+                txnRepo.save(txn);
+                auditService.record(txn.getId(), "TRANSFER_FAILED", txn.getFailureReason());
+                throw new CurrencyMismatchException(srcCurrency, tgtCurrency);
+            }
+            txn.setCurrency(srcCurrency);
+        }
+
+        // Step 3: Fraud / limit check before touching money
         FraudRuleEngine.FraudCheckResult check = fraudRuleEngine.evaluate(req.fromAccountId(), req.amount());
         if ("BLOCKED".equals(check.status())) {
             txn.setStatus("FAILED");
@@ -74,7 +95,7 @@ public class TransferSagaOrchestrator {
             txn.setFailureReason(check.reason());
             txnRepo.save(txn);
 
-            com.bank.transaction.entity.FraudRecord fr = new com.bank.transaction.entity.FraudRecord();
+            FraudRecord fr = new FraudRecord();
             fr.setTransactionId(txn.getId());
             fr.setFromAccountId(req.fromAccountId());
             fr.setAmount(req.amount());
@@ -88,7 +109,7 @@ public class TransferSagaOrchestrator {
         }
         if ("REVIEW".equals(check.status())) {
             txn.setRiskFlag("REVIEW");
-            com.bank.transaction.entity.FraudRecord fr = new com.bank.transaction.entity.FraudRecord();
+            FraudRecord fr = new FraudRecord();
             fr.setTransactionId(txn.getId());
             fr.setFromAccountId(req.fromAccountId());
             fr.setAmount(req.amount());
@@ -98,7 +119,7 @@ public class TransferSagaOrchestrator {
             fraudRecordRepo.save(fr);
         }
 
-        // Step 1: reserve funds (synchronous debit on source account)
+        // Step 4: reserve funds (synchronous debit on source account)
         try {
             accountClient.debit(req.fromAccountId(), req.amount());
             txn.setStatus("RESERVED");
@@ -112,9 +133,9 @@ public class TransferSagaOrchestrator {
             throw e;
         }
 
-        // Step 2: enqueue credit step via transactional outbox
+        // Step 5: enqueue credit step via transactional outbox
         TransferInitiatedEvent event = new TransferInitiatedEvent(
-                txn.getId(), req.idempotencyKey(), req.fromAccountId(), req.toAccountId(), req.amount());
+                txn.getId(), req.idempotencyKey(), req.fromAccountId(), req.toAccountId(), req.amount(), txn.getCurrency());
         outboxService.enqueue(txn.getId(), "TRANSFER_INITIATED", KafkaTopics.TRANSFER_INITIATED, event);
 
         return txn;
@@ -135,7 +156,7 @@ public class TransferSagaOrchestrator {
 
         if (!"RESERVED".equals(txn.getStatus())) {
             log.info("Skipping credit step for transaction {} — status is already {}", txn.getId(), txn.getStatus());
-            processedEventRepo.save(new com.bank.transaction.entity.ProcessedEvent(eventKey, "transaction-service-saga", java.time.Instant.now()));
+            processedEventRepo.save(new ProcessedEvent(eventKey, "transaction-service-saga", Instant.now()));
             return;
         }
 
@@ -158,7 +179,7 @@ public class TransferSagaOrchestrator {
                     new TransferFailedEvent(txn.getId(), e.getMessage()));
         }
 
-        processedEventRepo.save(new com.bank.transaction.entity.ProcessedEvent(eventKey, "transaction-service-saga", java.time.Instant.now()));
+        processedEventRepo.save(new ProcessedEvent(eventKey, "transaction-service-saga", Instant.now()));
     }
 
     /**
@@ -185,8 +206,8 @@ public class TransferSagaOrchestrator {
 
         auditService.record(txn.getId(), "TRANSFER_REVERSED", reason != null ? reason : "Compensating double-entry reversal");
 
-        com.bank.common.dto.events.TransferReversedEvent revEvent = new com.bank.common.dto.events.TransferReversedEvent(
-                txn.getId(), txn.getFromAccountId(), txn.getToAccountId(), txn.getAmount(), reason);
+        TransferReversedEvent revEvent = new TransferReversedEvent(
+                txn.getId(), txn.getFromAccountId(), txn.getToAccountId(), txn.getAmount(), reason, txn.getCurrency());
         outboxService.enqueue(txn.getId(), "TRANSFER_REVERSED", KafkaTopics.TRANSFER_REVERSED, revEvent);
 
         return saved;

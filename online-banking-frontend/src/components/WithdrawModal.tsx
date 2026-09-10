@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Account } from '../types';
+import { formatMoney, getCurrencySymbol } from '../utils/currency';
 
 interface WithdrawModalProps {
   isOpen: boolean;
@@ -24,8 +25,10 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
 
   if (!isOpen) return null;
 
-  const selectedAcc = accounts.find((a) => a.id === (accountId || accounts[0]?.id));
+  const selectedAcc = accounts.find((a) => a.id === (accountId || accounts[0]?.id)) || accounts[0];
   const availableBal = selectedAcc ? parseFloat(selectedAcc.balance) : 0;
+  const currencyCode = selectedAcc?.currency || 'USD';
+  const symbol = getCurrencySymbol(currencyCode);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,14 +39,14 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
       return;
     }
     if (amountNum > availableBal) {
-      setError(`Requested amount exceeds available balance of $${availableBal.toFixed(2)} USD`);
+      setError(`Requested amount exceeds available balance of ${formatMoney(availableBal, currencyCode, true)}`);
       return;
     }
 
     setLoading(true);
     setTimeout(() => {
       try {
-        onWithdraw(accountId || accounts[0]?.id, amountNum, note || 'Authorized Vault Cash/Liquidity Withdrawal');
+        onWithdraw(accountId || accounts[0]?.id, amountNum, note || `Authorized Vault Cash/Liquidity Withdrawal (${currencyCode})`);
         setAmount('');
         setNote('');
         setLoading(false);
@@ -83,7 +86,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
             >
               {accounts.map((acc) => (
                 <option key={acc.id} value={acc.id} disabled={acc.status === 'FROZEN'}>
-                  {acc.nickname || acc.accountType} (···· {acc.accountNumber.slice(-4)}) - ${parseFloat(acc.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD {acc.status === 'FROZEN' ? '[FROZEN]' : ''}
+                  {acc.nickname || acc.accountType} (···· {acc.accountNumber.slice(-4)}) - {formatMoney(acc.balance, acc.currency, true)} {acc.status === 'FROZEN' ? '[FROZEN]' : ''}
                 </option>
               ))}
             </select>
@@ -91,13 +94,13 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
 
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <label className="font-label-meta uppercase text-on-surface-variant font-bold">Withdrawal Amount (USD)</label>
+              <label className="font-label-meta uppercase text-on-surface-variant font-bold">Withdrawal Amount ({currencyCode})</label>
               <span className="font-label-numeric-sm text-xs text-on-surface-variant">
-                Avail: <strong className="text-on-surface font-mono">${availableBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
+                Avail: <strong className="text-on-surface font-mono">{formatMoney(availableBal, currencyCode)}</strong>
               </span>
             </div>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 font-label-numeric-md font-bold text-on-surface-variant">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 font-label-numeric-md font-bold text-on-surface-variant">{symbol}</span>
               <input
                 type="number"
                 step="0.01"
@@ -115,7 +118,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
             <label className="font-label-meta uppercase text-on-surface-variant font-bold">Reference / Purpose</label>
             <input
               type="text"
-              placeholder="e.g., Vault Physical Cash Outflow"
+              placeholder="e.g., Vault Cash Outflow"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className="w-full px-3 py-2 rounded-xl bg-surface-container-low border border-surface-container-highest text-on-surface text-body-sm focus:outline-none focus:border-secondary"
@@ -137,7 +140,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
               disabled={loading}
               className="flex-1 py-2.5 px-4 rounded-xl bg-primary text-on-primary font-semibold hover:bg-inverse-surface transition-colors shadow-sm flex items-center justify-center gap-2"
             >
-              {loading ? 'Debiting...' : 'Authorize Withdrawal'}
+              {loading ? 'Debiting...' : `Authorize Withdrawal (${currencyCode})`}
             </button>
           </div>
         </form>

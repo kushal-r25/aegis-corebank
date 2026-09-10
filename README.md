@@ -1,14 +1,19 @@
 # Aegis CoreBank — Institutional Online Banking & Treasury Platform
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-success?style=for-the-badge&logo=github)](https://kushal-r25.github.io/aegis-corebank/)
+[![Deploy on Render](https://img.shields.io/badge/Deploy%20to-Render-46E3B7?style=for-the-badge&logo=render)](https://render.com/deploy?repo=https://github.com/kushal-r25/aegis-corebank)
+
 [![Java 21](https://img.shields.io/badge/Java-21%20LTS-orange.svg)](https://openjdk.org/)
-[![Spring Boot 3.5](https://img.shields.io/badge/Spring%20Boot-3.5.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Spring Boot 3.5](https://img.shields.io/badge/Spring%20Boot-3.3.4-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Spring Security](https://img.shields.io/badge/Spring%20Security-6.1+-green.svg)](https://spring.io/projects/spring-security)
 [![React 19](https://img.shields.io/badge/React-19.0-blue.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg)](https://www.typescriptlang.org/)
 [![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17%20%2F%2016-336791.svg)](https://www.postgresql.org/)
-[![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-3.7%20%2F%204.0-black.svg)](https://kafka.apache.org/)
+[![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-3.7-black.svg)](https://kafka.apache.org/)
 [![Redis 7](https://img.shields.io/badge/Redis-7.0-red.svg)](https://redis.io/)
 [![Docker Compose](https://img.shields.io/badge/Docker-Compose%20v2-2496ED.svg)](https://www.docker.com/)
+
+> **Live Public Demonstration**: [**`https://kushal-r25.github.io/aegis-corebank/`**](https://kushal-r25.github.io/aegis-corebank/)
 
 Aegis CoreBank is an institutional-grade, high-concurrency distributed online banking and corporate treasury platform. It is engineered with strict ACID financial guarantees, deadlock-free deterministic pessimistic row locking, transactional outbox event delivery, Kafka saga orchestration, and double-entry immutable ledger journaling.
 
@@ -19,7 +24,8 @@ Aegis CoreBank is an institutional-grade, high-concurrency distributed online ba
 
 ## 1. Highlights
 
-- **Conservation of Money**: Enforced at the PostgreSQL level via `CONSTRAINT chk_balance_nonneg CHECK (balance >= 0)` and Java `BigDecimal` arithmetic.
+- **Multi-Currency Domain Modeling**: Real domain-level multi-currency architecture supporting **US Dollar (USD / $)** and **Indian Rupee (INR / ₹)** with strict balance segregation, ISO-4217 validation, and Indian numbering formatting (`₹1,00,000.00`).
+- **Conservation of Money & No-FX Invariant**: Enforced at the PostgreSQL level via `CONSTRAINT chk_balance_nonneg CHECK (balance >= 0)` and Java `BigDecimal`. Cross-currency transfers without real FX conversion are strictly rejected with HTTP 422 `CurrencyMismatchException` to guarantee zero unauthorized balance distortion.
 - **Deadlock-Free Pessimistic Locking**: Deterministic lexicographical UUID lock ordering eliminates cyclic wait deadlocks during concurrent bidirectional transfers ($A \rightarrow B$ and $B \rightarrow A$).
 - **Database-Level Idempotency**: PostgreSQL `UNIQUE (idempotency_key)` constraint with sub-transaction isolation (`PROPAGATION_REQUIRES_NEW`) safely handles concurrent duplicate retries.
 - **Transactional Outbox Pattern**: Entity mutations and `outbox_events` are committed in the same atomic database transaction, guaranteeing zero message loss across Kafka broker partitions.
@@ -80,6 +86,14 @@ Aegis CoreBank is an institutional-grade, high-concurrency distributed online ba
 ---
 
 ## 4. Financial Engineering & Concurrency Control
+
+### Multi-Currency System & Financial Invariants
+Aegis CoreBank supports institutional multi-currency operations across **USD ($)** and **INR (₹)**:
+- **Real Domain Value**: Currency is modeled directly across PostgreSQL entities (`accounts`, `ledger_entries`, `transactions`, `scheduled_transfers`), REST DTOs, Kafka events, and React state.
+- **Strict Balance Segregation**: Balances in different currencies are never combined or converted with arbitrary rates. The dashboard displays distinct aggregate liquidity per currency.
+- **Cross-Currency Validation**: Transfer Sagas validate currency parity before acquiring row locks or debiting funds. Mismatched transfers are rejected with `HTTP 422 Unprocessable Entity` (`CurrencyMismatchException`).
+- **Database CHECK Constraints**: Non-destructive Flyway V2 migrations enforce `CHECK (currency IN ('USD', 'INR'))` at the relational database level.
+
 
 1. **Precision & Money Math**: All monetary amounts use Java `BigDecimal` and PostgreSQL `NUMERIC(19,4)`. Floating-point arithmetic (`float`/`double`) is strictly prohibited to prevent IEEE 754 precision drift.
 2. **Deadlock-Free Deterministic Row Locking**: All multi-account transfer operations sort account UUIDs (`UUID.compareTo()`) before acquiring `SELECT ... FOR UPDATE` row locks, mathematically preventing cyclic wait deadlocks.

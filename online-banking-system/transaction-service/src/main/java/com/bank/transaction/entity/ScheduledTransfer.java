@@ -31,6 +31,9 @@ public class ScheduledTransfer {
     private BigDecimal amount;
 
     @Column(nullable = false)
+    private String currency = "USD"; // USD, INR
+
+    @Column(nullable = false)
     private String frequency; // DAILY, WEEKLY, MONTHLY, ONCE
 
     private String description;

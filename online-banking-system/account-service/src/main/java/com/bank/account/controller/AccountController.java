@@ -8,15 +8,14 @@ import com.bank.common.dto.response.AccountResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.UUID;
-
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/accounts")
@@ -36,7 +35,7 @@ public class AccountController {
                 userId = UUID.fromString(principal.getName());
             } catch (IllegalArgumentException ignored) {}
         }
-        Account account = accountService.createAccount(userId, req.accountType());
+        Account account = accountService.createAccount(userId, req.accountType(), req.currency());
         return ResponseEntity.status(201).body(toDto(account));
     }
 
@@ -117,7 +116,7 @@ public class AccountController {
         List<com.bank.account.dto.LedgerEntryResponse> list = accountService.getLedger(accountId).stream()
                 .map(l -> new com.bank.account.dto.LedgerEntryResponse(
                         l.getId(), l.getAccountId(), l.getAmount(), l.getEntryType(),
-                        l.getBalanceAfter(), l.getReferenceId(), l.getDescription(), l.getCreatedAt()))
+                        l.getBalanceAfter(), l.getReferenceId(), l.getDescription(), l.getCreatedAt(), l.getCurrency()))
                 .toList();
         return ResponseEntity.ok(list);
     }
@@ -158,6 +157,6 @@ public class AccountController {
 
     private AccountResponse toDto(Account a) {
         return new AccountResponse(a.getId(), a.getUserId(), a.getAccountNumber(),
-                a.getAccountType(), a.getBalance(), a.getStatus(), a.getCreatedAt());
+                a.getAccountType(), a.getBalance(), a.getStatus(), a.getCreatedAt(), a.getCurrency());
     }
 }

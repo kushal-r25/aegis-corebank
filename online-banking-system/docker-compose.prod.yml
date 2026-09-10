@@ -1,0 +1,244 @@
+# ==============================================================================
+# Aegis CoreBank — Production / Reference Docker Compose Configuration
+# ==============================================================================
+# Ingress Architecture:
+#   Public Internet -> Nginx (:80 / :443) -> Frontend / Microservices
+#
+# Private Isolation:
+#   All PostgreSQL instances, Redis, Kafka, and Spring Boot microservices
+#   communicate strictly over the private `aegis-prod-net` Docker bridge.
+#   Zero database or broker ports are exposed to host interfaces.
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Reverse Proxy & Ingress Gateway (The ONLY publicly bound container)
+  # ----------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: aegis-prod-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - auth-service
+      - account-service
+      - transaction-service
+      - notification-service
+    networks:
+      - aegis-prod-net
+
+  # ----------------------------------------------------------------------------
+  # 2. React 19 Production Frontend SPA
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ../online-banking-frontend
+      dockerfile: Dockerfile
+    container_name: aegis-prod-frontend
+    restart: unless-stopped
+    networks:
+      - aegis-prod-net
+
+  # ----------------------------------------------------------------------------
+  # 3. Core Banking Microservices
+  # ----------------------------------------------------------------------------
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    container_name: aegis-prod-auth
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres-auth
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-bank}
+      DB_PASSWORD: ${POSTGRES_AUTH_PASSWORD:-bank}
+      JWT_SECRET: ${JWT_SECRET:-aegis-corebank-production-jwt-signing-secret-key-32b-min}
+      SPRING_PROFILES_ACTIVE: production
+      JAVA_TOOL_OPTIONS: "-Xms256m -Xmx384m"
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+    networks:
+      - aegis-prod-net
+
+  account-service:
+    build:
+      context: .
+      dockerfile: account-service/Dockerfile
+    container_name: aegis-prod-account
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres-account
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-bank}
+      DB_PASSWORD: ${POSTGRES_ACCOUNT_PASSWORD:-bank}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BROKERS: kafka:9092
+      JWT_SECRET: ${JWT_SECRET:-aegis-corebank-production-jwt-signing-secret-key-32b-min}
+      SPRING_PROFILES_ACTIVE: production
+      JAVA_TOOL_OPTIONS: "-Xms256m -Xmx384m"
+    depends_on:
+      postgres-account:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    networks:
+      - aegis-prod-net
+
+  transaction-service:
+    build:
+      context: .
+      dockerfile: transaction-service/Dockerfile
+    container_name: aegis-prod-transaction
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres-transaction
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-bank}
+      DB_PASSWORD: ${POSTGRES_TXN_PASSWORD:-bank}
+      KAFKA_BROKERS: kafka:9092
+      ACCOUNT_SERVICE_URL: http://account-service:8082
+      JWT_SECRET: ${JWT_SECRET:-aegis-corebank-production-jwt-signing-secret-key-32b-min}
+      SPRING_PROFILES_ACTIVE: production
+      JAVA_TOOL_OPTIONS: "-Xms256m -Xmx384m"
+    depends_on:
+      postgres-transaction:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      account-service:
+        condition: service_started
+    networks:
+      - aegis-prod-net
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    container_name: aegis-prod-notification
+    restart: unless-stopped
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      SPRING_PROFILES_ACTIVE: production
+      JAVA_TOOL_OPTIONS: "-Xms256m -Xmx384m"
+    depends_on:
+      kafka:
+        condition: service_started
+    networks:
+      - aegis-prod-net
+
+  # ----------------------------------------------------------------------------
+  # 4. Private Infrastructure & Databases
+  # ----------------------------------------------------------------------------
+  postgres-auth:
+    image: postgres:16
+    container_name: aegis-prod-pg-auth
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: ${POSTGRES_USER:-bank}
+      POSTGRES_PASSWORD: ${POSTGRES_AUTH_PASSWORD:-bank}
+    volumes:
+      - pg_auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bank} -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - aegis-prod-net
+
+  postgres-account:
+    image: postgres:16
+    container_name: aegis-prod-pg-account
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: account_db
+      POSTGRES_USER: ${POSTGRES_USER:-bank}
+      POSTGRES_PASSWORD: ${POSTGRES_ACCOUNT_PASSWORD:-bank}
+    volumes:
+      - pg_account_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bank} -d account_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - aegis-prod-net
+
+  postgres-transaction:
+    image: postgres:16
+    container_name: aegis-prod-pg-txn
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: transaction_db
+      POSTGRES_USER: ${POSTGRES_USER:-bank}
+      POSTGRES_PASSWORD: ${POSTGRES_TXN_PASSWORD:-bank}
+    volumes:
+      - pg_txn_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bank} -d transaction_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - aegis-prod-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: aegis-prod-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - aegis-prod-net
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: aegis-prod-zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - aegis-prod-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: aegis-prod-kafka
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - aegis-prod-net
+
+volumes:
+  pg_auth_data:
+    name: aegis_prod_pg_auth_data
+  pg_account_data:
+    name: aegis_prod_pg_account_data
+  pg_txn_data:
+    name: aegis_prod_pg_txn_data
+
+networks:
+  aegis-prod-net:
+    name: aegis_prod_network
+    driver: bridge

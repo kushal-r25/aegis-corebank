@@ -11,5 +11,10 @@ public record AccountResponse(
         String accountType,
         BigDecimal balance,
         String status,
-        Instant createdAt
-) {}
+        Instant createdAt,
+        String currency
+) {
+    public AccountResponse(UUID id, UUID userId, String accountNumber, String accountType, BigDecimal balance, String status, Instant createdAt) {
+        this(id, userId, accountNumber, accountType, balance, status, createdAt, "USD");
+    }
+}

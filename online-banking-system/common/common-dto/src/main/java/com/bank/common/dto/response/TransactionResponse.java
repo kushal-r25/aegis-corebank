@@ -12,5 +12,10 @@ public record TransactionResponse(
         String status,
         String failureReason,
         String riskFlag,
-        Instant createdAt
-) {}
+        Instant createdAt,
+        String currency
+) {
+    public TransactionResponse(UUID id, UUID fromAccountId, UUID toAccountId, BigDecimal amount, String status, String failureReason, String riskFlag, Instant createdAt) {
+        this(id, fromAccountId, toAccountId, amount, status, failureReason, riskFlag, createdAt, "USD");
+    }
+}

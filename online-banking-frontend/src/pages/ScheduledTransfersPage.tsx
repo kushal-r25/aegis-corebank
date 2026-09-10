@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
 import type { Account, Beneficiary, ScheduledTransfer } from '../types';
+import { formatMoney } from '../utils/currency';
 
 export const ScheduledTransfersPage: React.FC = () => {
   const [schedules, setSchedules] = useState<ScheduledTransfer[]>(() => api.scheduled.getScheduledTransfers());
@@ -18,9 +19,11 @@ export const ScheduledTransfersPage: React.FC = () => {
 
   const refresh = () => setSchedules(api.scheduled.getScheduledTransfers());
 
+  const sourceAcc = accounts.find((a) => a.id === sourceAccountId) || accounts[0];
+  const sourceCurrency = sourceAcc ? (sourceAcc.currency || 'USD') : 'USD';
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    const sourceAcc = accounts.find((a) => a.id === sourceAccountId) || accounts[0];
     const ben = beneficiaries.find((b) => b.name === beneficiaryName) || beneficiaries[0];
 
     api.scheduled.createScheduledTransfer({
@@ -29,11 +32,11 @@ export const ScheduledTransfersPage: React.FC = () => {
       beneficiaryName: ben?.name || beneficiaryName,
       beneficiaryAccount: ben?.accountNumber || 'US94 AEGIS 0001 ...',
       amount,
-      currency: 'USD',
+      currency: sourceCurrency,
       frequency,
       nextExecutionDate,
       status: 'ACTIVE',
-      note: note || `Scheduled ${frequency} wire transfer`,
+      note: note || `Scheduled ${frequency} wire transfer (${sourceCurrency})`,
     });
 
     setIsAddOpen(false);
@@ -87,7 +90,7 @@ export const ScheduledTransfersPage: React.FC = () => {
                 >
                   {accounts.map((acc) => (
                     <option key={acc.id} value={acc.id}>
-                      {acc.nickname || acc.accountType} (${parseFloat(acc.balance).toLocaleString('en-US')} USD)
+                      {acc.nickname || acc.accountType} ({acc.currency}) - {formatMoney(acc.balance, acc.currency)}
                     </option>
                   ))}
                 </select>
@@ -102,7 +105,7 @@ export const ScheduledTransfersPage: React.FC = () => {
                 >
                   {beneficiaries.map((b) => (
                     <option key={b.id} value={b.name}>
-                      {b.name} ({b.bankName})
+                      {b.name} ({b.bankName}) [{b.currency || 'USD'}]
                     </option>
                   ))}
                 </select>
@@ -110,7 +113,7 @@ export const ScheduledTransfersPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">Amount (USD)</label>
+                  <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">Amount ({sourceCurrency})</label>
                   <input
                     type="number"
                     step="0.01"
@@ -187,7 +190,7 @@ export const ScheduledTransfersPage: React.FC = () => {
             Scheduled Transfers
           </h1>
           <p className="text-body-sm text-on-surface-variant mt-0.5">
-            Cron-driven interbank settlements with idempotency checks and automated retry queues.
+            Cron-driven settlements supporting USD &amp; INR with idempotency checks.
           </p>
         </div>
 
@@ -218,9 +221,10 @@ export const ScheduledTransfersPage: React.FC = () => {
                 <th className="p-3">Status</th>
                 <th className="p-3">Beneficiary Payee</th>
                 <th className="p-3">Source Account</th>
+                <th className="p-3">Currency</th>
                 <th className="p-3">Frequency</th>
                 <th className="p-3">Next Execution</th>
-                <th className="p-3 text-right">Amount (USD)</th>
+                <th className="p-3 text-right">Amount</th>
                 <th className="p-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -246,6 +250,7 @@ export const ScheduledTransfersPage: React.FC = () => {
                     </div>
                   </td>
                   <td className="p-3 font-semibold text-on-surface">{sch.sourceAccountName}</td>
+                  <td className="p-3 font-mono font-bold text-secondary">{sch.currency || 'USD'}</td>
                   <td className="p-3">
                     <span className="px-2 py-0.5 rounded bg-surface-container font-label-meta text-[10px] font-bold uppercase">
                       {sch.frequency}
@@ -253,7 +258,7 @@ export const ScheduledTransfersPage: React.FC = () => {
                   </td>
                   <td className="p-3 font-mono font-bold text-on-surface">{sch.nextExecutionDate}</td>
                   <td className="p-3 text-right font-label-numeric-md font-bold text-on-surface">
-                    ${parseFloat(sch.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {formatMoney(sch.amount, sch.currency || 'USD')}
                   </td>
                   <td className="p-3 text-right">
                     <div className="flex items-center justify-end gap-2">

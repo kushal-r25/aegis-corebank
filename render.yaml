@@ -1,0 +1,72 @@
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Aegis CoreBank Production Backend Web Service
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: aegis-corebank-api
+    runtime: docker
+    dockerfilePath: Dockerfile.cloud
+    plan: free
+    region: oregon
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_HOST
+        fromDatabase:
+          name: aegis-corebank-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: aegis-corebank-db
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: aegis-corebank-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: aegis-corebank-db
+          property: password
+
+  # ----------------------------------------------------------------------------
+  # 2. Aegis CoreBank React Frontend SPA
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: aegis-corebank-frontend
+    runtime: static
+    rootDir: online-banking-frontend
+    buildCommand: npm run build
+    staticPublishPath: dist
+    plan: free
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_AUTH_API_URL
+        fromService:
+          type: web
+          name: aegis-corebank-api
+          property: host
+      - key: VITE_ACCOUNT_API_URL
+        fromService:
+          type: web
+          name: aegis-corebank-api
+          property: host
+      - key: VITE_TRANSACTION_API_URL
+        fromService:
+          type: web
+          name: aegis-corebank-api
+          property: host
+
+databases:
+  # ----------------------------------------------------------------------------
+  # 3. Free Persistent PostgreSQL Database
+  # ----------------------------------------------------------------------------
+  - name: aegis-corebank-db
+    databaseName: aegis_corebank
+    user: aegis_admin
+    plan: free
+    region: oregon

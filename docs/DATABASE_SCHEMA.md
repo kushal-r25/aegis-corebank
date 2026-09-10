@@ -309,3 +309,55 @@ Consumer deduplication table preventing at-least-once duplicate processing.
 1. **Monetary Precision**: All currency balances and transfers use PostgreSQL `NUMERIC(19,4)` and Java `BigDecimal`. Floating-point types (`FLOAT`, `DOUBLE`) are strictly forbidden.
 2. **Deterministic Locking**: Deadlocks during concurrent bidirectional transfers ($A \rightarrow B$ and $B \rightarrow A$) are prevented by sorting primary key UUIDs in ascending order before executing `SELECT ... FOR UPDATE`.
 3. **Double-Entry Immutability**: Ledger rows are strictly append-only. Compensations are executed by creating inverse `CREDIT` entries rather than altering historic rows.
+
+---
+
+## 5. Flyway V2 Multi-Currency Database Migrations
+
+### Migration `V2__add_currency_to_accounts_and_ledger.sql` (`account_db`)
+```sql
+ALTER TABLE accounts
+    ADD COLUMN IF NOT EXISTS currency VARCHAR(10) NOT NULL DEFAULT 'USD';
+
+ALTER TABLE accounts
+    DROP CONSTRAINT IF EXISTS chk_account_currency;
+
+ALTER TABLE accounts
+    ADD CONSTRAINT chk_account_currency CHECK (currency IN ('USD', 'INR'));
+
+ALTER TABLE ledger_entries
+    ADD COLUMN IF NOT EXISTS currency VARCHAR(10) NOT NULL DEFAULT 'USD';
+
+ALTER TABLE ledger_entries
+    DROP CONSTRAINT IF EXISTS chk_ledger_currency;
+
+ALTER TABLE ledger_entries
+    ADD CONSTRAINT chk_ledger_currency CHECK (currency IN ('USD', 'INR'));
+
+CREATE INDEX IF NOT EXISTS idx_accounts_currency ON accounts(currency);
+CREATE INDEX IF NOT EXISTS idx_ledger_currency ON ledger_entries(currency);
+```
+
+### Migration `V2__add_currency_to_transactions_and_scheduled.sql` (`transaction_db`)
+```sql
+ALTER TABLE transactions
+    ADD COLUMN IF NOT EXISTS currency VARCHAR(10) NOT NULL DEFAULT 'USD';
+
+ALTER TABLE transactions
+    DROP CONSTRAINT IF EXISTS chk_transaction_currency;
+
+ALTER TABLE transactions
+    ADD CONSTRAINT chk_transaction_currency CHECK (currency IN ('USD', 'INR'));
+
+ALTER TABLE scheduled_transfers
+    ADD COLUMN IF NOT EXISTS currency VARCHAR(10) NOT NULL DEFAULT 'USD';
+
+ALTER TABLE scheduled_transfers
+    DROP CONSTRAINT IF EXISTS chk_scheduled_currency;
+
+ALTER TABLE scheduled_transfers
+    ADD CONSTRAINT chk_scheduled_currency CHECK (currency IN ('USD', 'INR'));
+
+CREATE INDEX IF NOT EXISTS idx_transactions_currency ON transactions(currency);
+CREATE INDEX IF NOT EXISTS idx_scheduled_currency ON scheduled_transfers(currency);
+```

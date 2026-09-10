@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
 import type { Account, Beneficiary } from '../types';
+import { formatMoney, getCurrencySymbol } from '../utils/currency';
 import { TwoFactorModal } from '../components/TwoFactorModal';
 import { TransferSuccessModal } from '../components/TransferSuccessModal';
 
@@ -18,6 +19,7 @@ export const TransfersPage: React.FC = () => {
   const [oneOffAccount, setOneOffAccount] = useState('');
   const [oneOffBank, setOneOffBank] = useState('');
   const [oneOffRouting, setOneOffRouting] = useState('');
+  const [oneOffCurrency, setOneOffCurrency] = useState<'USD' | 'INR'>('USD');
 
   // Transfer inputs
   const [amount, setAmount] = useState('2400.00');
@@ -28,20 +30,30 @@ export const TransfersPage: React.FC = () => {
   const [is2FaOpen, setIs2FaOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
-  const [successData, setSuccessData] = useState<{ txnId: string; corrId: string; amount: string; payee: string; sourceName: string } | null>(null);
+  const [successData, setSuccessData] = useState<{ txnId: string; corrId: string; amount: string; currency: string; payee: string; sourceName: string } | null>(null);
 
   const sourceAccount = accounts.find((a) => a.id === sourceAccountId) || accounts[0];
   const selectedBen = beneficiaries.find((b) => b.id === selectedBenId) || beneficiaries[0];
+
+  const sourceCurrency = sourceAccount ? (sourceAccount.currency || 'USD') : 'USD';
+  const targetCurrency = tab === 'saved' ? (selectedBen?.currency || 'USD') : oneOffCurrency;
+  const isCurrencyMismatch = sourceCurrency !== targetCurrency;
 
   const payeeName = tab === 'saved' ? (selectedBen?.name || 'Beneficiary') : (oneOffName || 'External Payee');
   const availableBal = sourceAccount ? parseFloat(sourceAccount.balance) : 0;
   const dailyLimit = sourceAccount ? parseFloat(sourceAccount.dailyLimit || '50000') : 50000;
   const dailyUsed = sourceAccount ? parseFloat(sourceAccount.dailyLimitUsed || '0') : 0;
   const remainingDailyCapacity = Math.max(0, dailyLimit - dailyUsed);
+  const symbol = getCurrencySymbol(sourceCurrency);
 
   const handleStartTransfer = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (isCurrencyMismatch) {
+      setError(`Cross-currency transfers are not supported without FX conversion. Source: ${sourceCurrency}, Destination: ${targetCurrency}.`);
+      return;
+    }
 
     const amountNum = parseFloat(amount);
     if (isNaN(amountNum) || amountNum <= 0) {
@@ -49,11 +61,11 @@ export const TransfersPage: React.FC = () => {
       return;
     }
     if (amountNum > availableBal) {
-      setError(`Insufficient available liquidity ($${availableBal.toFixed(2)} USD in source ledger)`);
+      setError(`Insufficient available liquidity (${formatMoney(availableBal, sourceCurrency, true)} in source ledger)`);
       return;
     }
     if (amountNum > remainingDailyCapacity) {
-      setError(`Exceeds daily Fedwire limit. Remaining headroom: $${remainingDailyCapacity.toFixed(2)} USD`);
+      setError(`Exceeds daily limit. Remaining headroom: ${formatMoney(remainingDailyCapacity, sourceCurrency, true)}`);
       return;
     }
     if (tab === 'oneoff' && (!oneOffName || !oneOffAccount || !oneOffRouting)) {
@@ -71,6 +83,7 @@ export const TransfersPage: React.FC = () => {
         const res = api.transfers.executeTransfer({
           sourceAccountId: sourceAccount.id,
           amount,
+          currency: sourceCurrency,
           beneficiaryName: payeeName,
           beneficiaryAccount: tab === 'saved' ? selectedBen?.accountNumber : oneOffAccount,
           routingCode: tab === 'saved' ? selectedBen?.routingCode : oneOffRouting,
@@ -88,6 +101,7 @@ export const TransfersPage: React.FC = () => {
           txnId: res.transactionId,
           corrId: res.correlationId,
           amount,
+          currency: sourceCurrency,
           payee: payeeName,
           sourceName: sourceAccount.nickname || sourceAccount.accountType,
         });
@@ -107,6 +121,7 @@ export const TransfersPage: React.FC = () => {
         onClose={() => setIs2FaOpen(false)}
         onConfirm={handleConfirm2Fa}
         amount={amount}
+        currency={sourceCurrency}
         beneficiaryName={payeeName}
         sourceAccountName={sourceAccount.nickname || sourceAccount.accountType}
         isProcessing={isProcessing}
@@ -120,6 +135,7 @@ export const TransfersPage: React.FC = () => {
           transactionId={successData.txnId}
           correlationId={successData.corrId}
           amount={successData.amount}
+          currency={successData.currency}
           beneficiaryName={successData.payee}
           sourceAccountName={successData.sourceName}
         />
@@ -138,70 +154,31 @@ export const TransfersPage: React.FC = () => {
                 ACID GUARD ON
               </span>
             </div>
-            <p className="text-xs text-on-surface-variant">Fedwire RTGS Settlement Engine · Synchronous Ledger Locking Active</p>
+            <p className="text-xs text-on-surface-variant">RTGS / Fedwire Settlement Engine · Synchronous Ledger Locking Active · USD &amp; INR Supported</p>
           </div>
         </div>
 
         <div className="flex items-center gap-4 text-xs">
           <div className="flex items-center gap-1.5 font-label-numeric-sm font-bold text-on-tertiary-container">
             <span className="w-2 h-2 rounded-full bg-on-tertiary-container animate-pulse"></span>
-            <span>FEDWIRE WINDOW: OPEN (T-0 SAME-DAY)</span>
-          </div>
-          <div className="h-4 w-px bg-surface-container-highest"></div>
-          <span className="font-label-numeric-sm text-on-surface-variant">
-            CYCLE CUTOFF: <strong className="text-on-surface">17:00:00 EST</strong>
-          </span>
-        </div>
-      </div>
-
-      {/* Stepper Pipeline */}
-      <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container-highest shadow-sm">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="flex items-start gap-3 p-2 bg-surface-container-low rounded-xl border border-surface-container-highest">
-            <div className="w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-numeric-sm text-xs font-bold shrink-0">
-              1
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="font-label-meta text-[10px] uppercase font-bold text-secondary">Step 01 · Active</span>
-              <span className="font-headline-sm text-xs font-bold text-on-surface truncate">Amount &amp; Routing</span>
-              <span className="text-[10px] text-on-surface-variant truncate">Configuring Wire Route</span>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3 p-2 rounded-xl">
-            <div className="w-7 h-7 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-label-numeric-sm text-xs font-bold shrink-0">
-              2
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="font-label-meta text-[10px] uppercase font-bold text-on-surface-variant">Step 02 · Armed</span>
-              <span className="font-headline-sm text-xs font-bold text-on-surface truncate">Risk &amp; Dual-Check</span>
-              <span className="text-[10px] text-on-tertiary-container font-semibold truncate">OFAC / AML Automated Pass</span>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3 p-2 rounded-xl">
-            <div className="w-7 h-7 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center font-label-numeric-sm text-xs font-bold shrink-0">
-              3
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="font-label-meta text-[10px] uppercase font-bold text-on-surface-variant">Step 03 · Queued</span>
-              <span className="font-headline-sm text-xs font-bold text-on-surface-variant truncate">Idempotency Sign</span>
-              <span className="text-[10px] text-on-surface-variant truncate">Hardware-Deduplicated Key</span>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3 p-2 rounded-xl">
-            <div className="w-7 h-7 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center font-label-numeric-sm text-xs font-bold shrink-0">
-              4
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="font-label-meta text-[10px] uppercase font-bold text-on-surface-variant">Step 04 · Ready</span>
-              <span className="font-headline-sm text-xs font-bold text-on-surface-variant truncate">Settlement Outbox</span>
-              <span className="text-[10px] text-on-surface-variant truncate">Guaranteed Ledger Append</span>
-            </div>
+            <span>SETTLEMENT WINDOW: OPEN (SAME-DAY)</span>
           </div>
         </div>
       </div>
+
+      {/* Cross-Currency Warning Alert if Mismatch */}
+      {isCurrencyMismatch && (
+        <div className="p-4 rounded-xl bg-error-container/40 border border-error/30 text-on-error-container flex items-start gap-3">
+          <span className="material-symbols-outlined text-error text-[24px]">warning</span>
+          <div className="flex flex-col text-xs">
+            <span className="font-bold text-sm">Cross-Currency Transfers Not Supported</span>
+            <p className="mt-0.5">
+              Source account currency is <strong>{sourceCurrency}</strong>, but destination recipient operates in <strong>{targetCurrency}</strong>.
+              Ordinary transfers require matching currencies. FX conversion is intentionally outside the current reference implementation.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Primary Workspace: 12 Cols Layout */}
       <form onSubmit={handleStartTransfer} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -214,8 +191,8 @@ export const TransfersPage: React.FC = () => {
                 <span className="material-symbols-outlined text-secondary text-[20px]">account_balance_wallet</span>
                 <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Originating Account</h3>
               </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-surface-container-low text-secondary font-label-meta text-[10px] font-bold uppercase">
-                Multi-Sign Master
+              <span className="px-2.5 py-0.5 rounded-full bg-surface-container-low text-secondary font-mono text-[10px] font-bold uppercase">
+                Currency: {sourceCurrency}
               </span>
             </div>
 
@@ -233,12 +210,12 @@ export const TransfersPage: React.FC = () => {
                     >
                       {accounts.map((acc) => (
                         <option key={acc.id} value={acc.id} disabled={acc.status === 'FROZEN'}>
-                          {acc.nickname || acc.accountType} (···· {acc.accountNumber.slice(-4)}) - ${parseFloat(acc.balance).toLocaleString('en-US')} USD
+                          {acc.nickname || acc.accountType} (···· {acc.accountNumber.slice(-4)}) - {formatMoney(acc.balance, acc.currency, true)}
                         </option>
                       ))}
                     </select>
                     <span className="text-xs text-on-surface-variant font-mono">
-                      IBAN: {sourceAccount.iban || sourceAccount.accountNumber} · Routing: {sourceAccount.routingNumber}
+                      Account: {sourceAccount.iban || sourceAccount.accountNumber} · Routing: {sourceAccount.routingNumber}
                     </span>
                   </div>
                 </div>
@@ -248,14 +225,14 @@ export const TransfersPage: React.FC = () => {
                 <div>
                   <span className="font-label-meta uppercase text-on-surface-variant text-[10px]">Available Liquidity</span>
                   <p className="font-label-numeric-lg text-xl font-bold text-on-surface mt-0.5">
-                    ${parseFloat(sourceAccount.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-on-surface-variant">USD</span>
+                    {formatMoney(sourceAccount.balance, sourceCurrency, true)}
                   </p>
                 </div>
                 <div>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="font-label-meta uppercase text-on-surface-variant text-[10px]">Daily Limit Used</span>
                     <span className="font-mono text-on-surface font-semibold">
-                      ${parseFloat(sourceAccount.dailyLimitUsed || '0').toLocaleString('en-US')} / ${parseFloat(sourceAccount.dailyLimit || '50000').toLocaleString('en-US')}
+                      {formatMoney(sourceAccount.dailyLimitUsed || '0', sourceCurrency)} / {formatMoney(sourceAccount.dailyLimit || '50000', sourceCurrency)}
                     </span>
                   </div>
                   <div className="w-full h-2 rounded-full bg-surface-container-highest overflow-hidden">
@@ -265,7 +242,7 @@ export const TransfersPage: React.FC = () => {
                     ></div>
                   </div>
                   <p className="text-[10px] text-on-tertiary-container font-semibold mt-1">
-                    Remaining Capacity: ${remainingDailyCapacity.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                    Remaining Headroom: {formatMoney(remainingDailyCapacity, sourceCurrency, true)}
                   </p>
                 </div>
               </div>
@@ -312,25 +289,29 @@ export const TransfersPage: React.FC = () => {
                   >
                     {beneficiaries.map((b) => (
                       <option key={b.id} value={b.id} disabled={b.status === 'BLOCKED'}>
-                        {b.name} ({b.bankName}) {b.status === 'BLOCKED' ? '[BLOCKED]' : ''}
+                        {b.name} ({b.bankName}) [{b.currency || 'USD'}] {b.status === 'BLOCKED' ? '[BLOCKED]' : ''}
                       </option>
                     ))}
                   </select>
                 </div>
 
                 {selectedBen && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-surface-container-lowest rounded-xl border border-surface-container-highest text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-3 bg-surface-container-lowest rounded-xl border border-surface-container-highest text-xs">
                     <div>
-                      <span className="font-label-meta uppercase text-on-surface-variant text-[10px]">Beneficiary Account</span>
+                      <span className="font-label-meta uppercase text-on-surface-variant text-[10px]">Account</span>
                       <p className="font-mono font-bold text-on-surface mt-0.5 truncate">{selectedBen.accountNumber}</p>
                     </div>
                     <div>
-                      <span className="font-label-meta uppercase text-on-surface-variant text-[10px]">Bank / Clearing</span>
+                      <span className="font-label-meta uppercase text-on-surface-variant text-[10px]">Bank</span>
                       <p className="font-semibold text-on-surface mt-0.5 truncate">{selectedBen.bankName}</p>
                     </div>
                     <div>
-                      <span className="font-label-meta uppercase text-on-surface-variant text-[10px]">Routing / BIC</span>
+                      <span className="font-label-meta uppercase text-on-surface-variant text-[10px]">Routing</span>
                       <p className="font-mono font-bold text-on-surface mt-0.5">{selectedBen.routingCode}</p>
+                    </div>
+                    <div>
+                      <span className="font-label-meta uppercase text-on-surface-variant text-[10px]">Currency</span>
+                      <p className="font-mono font-bold text-secondary mt-0.5">{selectedBen.currency || 'USD'}</p>
                     </div>
                   </div>
                 )}
@@ -361,21 +342,32 @@ export const TransfersPage: React.FC = () => {
                   <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">Receiving Bank Name</label>
                   <input
                     type="text"
-                    placeholder="e.g. Bank of America"
+                    placeholder="e.g. JPMorgan Chase or HDFC"
                     value={oneOffBank}
                     onChange={(e) => setOneOffBank(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface-container-lowest border border-surface-container-highest text-xs text-on-surface focus:outline-none focus:border-secondary"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">Fedwire Routing Number</label>
+                  <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">Routing / IFSC Code</label>
                   <input
                     type="text"
-                    placeholder="e.g. 021000021"
+                    placeholder="e.g. 021000021 or HDFC0001234"
                     value={oneOffRouting}
                     onChange={(e) => setOneOffRouting(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-surface-container-lowest border border-surface-container-highest text-xs font-mono text-on-surface focus:outline-none focus:border-secondary"
                   />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">Destination Currency</label>
+                  <select
+                    value={oneOffCurrency}
+                    onChange={(e) => setOneOffCurrency(e.target.value as 'USD' | 'INR')}
+                    className="w-full px-3 py-2 rounded-xl bg-surface-container-lowest border border-surface-container-highest text-xs font-mono font-bold text-on-surface focus:outline-none focus:border-secondary"
+                  >
+                    <option value="USD">USD ($)</option>
+                    <option value="INR">INR (₹)</option>
+                  </select>
                 </div>
               </div>
             )}
@@ -397,9 +389,9 @@ export const TransfersPage: React.FC = () => {
 
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">Instructed Monetary Amount (USD)</label>
+                <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">Instructed Monetary Amount ({sourceCurrency})</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-label-numeric-lg font-bold text-on-surface-variant">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-label-numeric-lg font-bold text-on-surface-variant">{symbol}</span>
                   <input
                     type="number"
                     step="0.01"
@@ -426,15 +418,15 @@ export const TransfersPage: React.FC = () => {
               <div className="p-4 bg-surface-container-low rounded-xl border border-surface-container-highest text-xs flex flex-col gap-2">
                 <div className="flex justify-between">
                   <span className="text-on-surface-variant">Instructed Sum:</span>
-                  <span className="font-mono font-bold text-on-surface">${parseFloat(amount || '0').toLocaleString('en-US', { minimumFractionDigits: 2 })} USD</span>
+                  <span className="font-mono font-bold text-on-surface">{formatMoney(amount || '0', sourceCurrency, true)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-on-surface-variant">Fedwire RTGS Settlement Fee:</span>
-                  <span className="font-mono font-bold text-on-tertiary-container">$0.00 USD</span>
+                  <span className="text-on-surface-variant">Settlement Fee:</span>
+                  <span className="font-mono font-bold text-on-tertiary-container">{symbol}0.00 {sourceCurrency}</span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-surface-container-highest">
                   <span className="font-bold text-on-surface">Total Debit Impact:</span>
-                  <span className="font-mono font-bold text-on-surface text-sm">${parseFloat(amount || '0').toLocaleString('en-US', { minimumFractionDigits: 2 })} USD</span>
+                  <span className="font-mono font-bold text-on-surface text-sm">{formatMoney(amount || '0', sourceCurrency, true)}</span>
                 </div>
               </div>
 
@@ -442,10 +434,15 @@ export const TransfersPage: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full py-3 px-4 bg-primary text-on-primary font-bold rounded-xl hover:bg-inverse-surface transition-colors flex items-center justify-center gap-2 shadow-sm text-body-md"
+                disabled={isCurrencyMismatch}
+                className={`w-full py-3 px-4 font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm text-body-md ${
+                  isCurrencyMismatch
+                    ? 'bg-surface-container-highest text-on-surface-variant cursor-not-allowed'
+                    : 'bg-primary text-on-primary hover:bg-inverse-surface'
+                }`}
               >
                 <span className="material-symbols-outlined text-[20px]">lock</span>
-                <span>Proceed to Dual-Sign 2FA</span>
+                <span>{isCurrencyMismatch ? 'Cross-Currency Disabled' : 'Proceed to Dual-Sign 2FA'}</span>
               </button>
             </div>
           </div>

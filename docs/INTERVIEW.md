@@ -135,3 +135,22 @@ The domain mutation and the outbox event are saved in the **exact same database 
 - **Zero Balance Corruption**: 10 concurrent threads transferring across paired accounts produce 0 negative balances and 100% matched debit/credit totals.
 - **Saga Latency**: Average sub-50ms local execution for end-to-end multi-account double-entry settlement.
 - **Zero Event Loss**: 100% of transaction lifecycle transitions recorded to `outbox_events` and mirrored in `audit_log`.
+
+---
+
+## 13. Multi-Currency Engineering & Financial Precision
+
+### Q: Why does Aegis CoreBank reject cross-currency transfers rather than synthesizing an arbitrary exchange rate?
+**A:** In institutional banking and core treasury engines, foreign exchange (FX) conversion is a separate, regulated settlement mechanism requiring real-time interbank rate feeds, spread configurations, and FX Nostro/Vostro settlement accounts. Faking exchange rates in client-side code or backend mocks introduces silent ledger imbalances and breaks the fundamental accounting conservation invariant. By strictly rejecting cross-currency transfers with `CurrencyMismatchException` (HTTP 422), the platform enforces real-world core banking safety.
+
+### Q: How is currency persisted and validated in the database?
+**A:**
+1. `accounts`, `ledger_entries`, `transactions`, and `scheduled_transfers` have a `currency VARCHAR(10) NOT NULL` column.
+2. PostgreSQL `CHECK (currency IN ('USD', 'INR'))` constraints prevent invalid currency codes at the relational storage level.
+3. Flyway `V2__add_currency_to_accounts_and_ledger.sql` and `V2__add_currency_to_transactions_and_scheduled.sql` apply non-destructive schema migrations with `DEFAULT 'USD'` to guarantee seamless backward compatibility for existing data.
+
+### Q: How does the frontend handle multi-currency formatting?
+**A:** The frontend uses `Intl.NumberFormat` with locale-aware configurations:
+- `en-US` for `USD` (`$100,000.00`)
+- `en-IN` for `INR` (`₹1,00,000.00` using the Indian numbering system: thousands, lakhs, crores)
+- Total balances are strictly segregated per currency on the dashboard and in account selectors.

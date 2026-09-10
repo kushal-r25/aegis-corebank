@@ -1,4 +1,5 @@
 export type UserRole = 'CUSTOMER' | 'ADMIN' | 'AUDITOR';
+export type CurrencyCode = 'USD' | 'INR';
 
 export interface User {
   id: string;
@@ -19,7 +20,7 @@ export interface Account {
   accountNumber: string;
   accountType: 'CHECKING' | 'SAVINGS' | 'TREASURY' | 'RESERVE';
   balance: string;
-  currency: string;
+  currency: CurrencyCode;
   status: 'ACTIVE' | 'FROZEN' | 'DORMANT' | 'CLOSED';
   createdAt: string;
   iban: string;
@@ -39,6 +40,7 @@ export interface Beneficiary {
   accountNumber: string;
   bankName: string;
   routingCode: string;
+  currency?: CurrencyCode;
   nickname?: string;
   status: 'ACTIVE' | 'BLOCKED';
   createdAt: string;
@@ -52,6 +54,7 @@ export interface LedgerEntry {
   accountName?: string;
   accountNumber?: string;
   amount: string;
+  currency: CurrencyCode;
   type: 'DEBIT' | 'CREDIT';
   status: 'SETTLED' | 'PENDING' | 'REVERSED' | 'FAILED';
   description: string;
@@ -69,7 +72,7 @@ export interface TransferRequest {
   beneficiaryAccount?: string;
   routingCode?: string;
   amount: string;
-  currency?: string;
+  currency?: CurrencyCode;
   note?: string;
   idempotencyKey: string;
   twoFactorOtp?: string;
@@ -84,7 +87,7 @@ export interface ScheduledTransfer {
   beneficiaryName: string;
   beneficiaryAccount: string;
   amount: string;
-  currency: string;
+  currency: CurrencyCode;
   frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY';
   nextExecutionDate: string;
   status: 'ACTIVE' | 'PAUSED' | 'CANCELLED';
@@ -100,6 +103,7 @@ export interface FraudRecord {
   targetAccountId?: string;
   beneficiaryName: string;
   amount: string;
+  currency?: CurrencyCode;
   riskScore: number;
   reason: string;
   status: 'FLAGGED' | 'APPROVED' | 'REJECTED';
@@ -136,7 +140,7 @@ export interface TransactionTrace {
   sourceAccount: string;
   targetAccount: string;
   amount: string;
-  currency: string;
+  currency: CurrencyCode;
   status: 'SETTLED' | 'REVERSED' | 'FAILED' | 'PENDING';
   merkleRoot: string;
   blockNumber: number;

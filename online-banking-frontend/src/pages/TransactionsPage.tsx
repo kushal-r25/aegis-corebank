@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
 import type { Account, LedgerEntry } from '../types';
+import { formatMoney } from '../utils/currency';
 import { ReversalModal } from '../components/ReversalModal';
 
 export const TransactionsPage: React.FC = () => {
@@ -26,9 +27,9 @@ export const TransactionsPage: React.FC = () => {
   };
 
   const handleExportCSV = () => {
-    const headers = 'Transaction ID,Account,Type,Amount,Status,Description,Timestamp,Correlation ID,Balance After\n';
+    const headers = 'Transaction ID,Account,Currency,Type,Amount,Status,Description,Timestamp,Correlation ID,Balance After\n';
     const rows = filtered.map((e) =>
-      `"${e.transactionId}","${e.accountName || e.accountId}","${e.type}","${e.amount}","${e.status}","${e.description}","${e.timestamp}","${e.correlationId}","${e.balanceAfter}"`
+      `"${e.transactionId}","${e.accountName || e.accountId}","${e.currency || 'USD'}","${e.type}","${e.amount}","${e.status}","${e.description}","${e.timestamp}","${e.correlationId}","${e.balanceAfter}"`
     ).join('\n');
     const blob = new Blob([headers + rows], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -74,7 +75,7 @@ export const TransactionsPage: React.FC = () => {
             Transactions &amp; Statements
           </h1>
           <p className="text-body-sm text-on-surface-variant mt-0.5">
-            Cryptographically timestamped transaction history with paired reversal controls and CSV export.
+            Cryptographically timestamped transaction history supporting USD and INR ledgers.
           </p>
         </div>
 
@@ -101,7 +102,6 @@ export const TransactionsPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Account Filter */}
           <select
             value={selectedAccId}
             onChange={(e) => setSelectedAccId(e.target.value)}
@@ -110,7 +110,7 @@ export const TransactionsPage: React.FC = () => {
             <option value="ALL">All Sub-Ledgers</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
-                {a.nickname || a.accountType}
+                {a.nickname || a.accountType} ({a.currency || 'USD'})
               </option>
             ))}
           </select>
@@ -189,12 +189,13 @@ export const TransactionsPage: React.FC = () => {
             <thead className="bg-surface-container-low text-on-surface-variant font-label-meta uppercase border-b border-surface-container-highest">
               <tr>
                 <th className="p-3">Type</th>
-                <th className="p-3">Txn ID / Correlation Hash</th>
+                <th className="p-3">Txn ID / Correlation</th>
                 <th className="p-3">Description / Payee</th>
                 <th className="p-3">Account Sub-Ledger</th>
+                <th className="p-3">Currency</th>
                 <th className="p-3">Timestamp</th>
                 <th className="p-3">Status</th>
-                <th className="p-3 text-right">Amount (USD)</th>
+                <th className="p-3 text-right">Amount</th>
                 <th className="p-3 text-right">Balance After</th>
                 <th className="p-3 text-right">Action</th>
               </tr>
@@ -202,7 +203,7 @@ export const TransactionsPage: React.FC = () => {
             <tbody className="divide-y divide-surface-container-highest">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-on-surface-variant text-body-sm">
+                  <td colSpan={10} className="p-8 text-center text-on-surface-variant text-body-sm">
                     No transactions matching the selected criteria found.
                   </td>
                 </tr>
@@ -236,6 +237,7 @@ export const TransactionsPage: React.FC = () => {
                     <td className="p-3 font-semibold text-on-surface truncate max-w-[140px]">
                       {entry.accountName || entry.accountId}
                     </td>
+                    <td className="p-3 font-mono font-bold text-secondary">{entry.currency || 'USD'}</td>
                     <td className="p-3 font-mono text-on-surface-variant">{new Date(entry.timestamp).toLocaleString()}</td>
                     <td className="p-3">
                       <span className={`px-2 py-0.5 rounded-full font-label-meta text-[9px] font-bold uppercase ${
@@ -250,11 +252,11 @@ export const TransactionsPage: React.FC = () => {
                     </td>
                     <td className="p-3 text-right font-label-numeric-md font-bold">
                       <span className={entry.type === 'CREDIT' ? 'text-on-tertiary-container' : 'text-on-surface'}>
-                        {entry.type === 'CREDIT' ? '+' : '-'}${parseFloat(entry.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        {entry.type === 'CREDIT' ? '+' : '-'}{formatMoney(entry.amount, entry.currency || 'USD')}
                       </span>
                     </td>
                     <td className="p-3 text-right font-mono text-on-surface font-semibold">
-                      ${parseFloat(entry.balanceAfter).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      {formatMoney(entry.balanceAfter, entry.currency || 'USD')}
                     </td>
                     <td className="p-3 text-right">
                       {entry.type === 'DEBIT' && entry.status !== 'REVERSED' && (

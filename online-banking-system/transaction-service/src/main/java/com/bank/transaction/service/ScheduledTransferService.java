@@ -2,7 +2,10 @@ package com.bank.transaction.service;
 
 import com.bank.common.dto.request.ScheduledTransferRequest;
 import com.bank.common.dto.request.TransferRequest;
+import com.bank.common.dto.response.AccountResponse;
 import com.bank.common.dto.response.ScheduledTransferResponse;
+import com.bank.common.exceptions.CurrencyMismatchException;
+import com.bank.transaction.client.AccountServiceClient;
 import com.bank.transaction.entity.ScheduledTransfer;
 import com.bank.transaction.repository.ScheduledTransferRepository;
 import com.bank.transaction.saga.TransferSagaOrchestrator;
@@ -24,14 +27,32 @@ public class ScheduledTransferService {
 
     private final ScheduledTransferRepository stRepo;
     private final TransferSagaOrchestrator sagaOrchestrator;
+    private final AccountServiceClient accountClient;
 
     @Transactional
     public ScheduledTransferResponse create(ScheduledTransferRequest req) {
+        String currency = req.currency() != null ? req.currency() : "USD";
+
+        // Validate source and destination account currencies match if accounts are accessible
+        try {
+            AccountResponse from = accountClient.getAccount(req.fromAccountId());
+            AccountResponse to = accountClient.getAccount(req.toAccountId());
+            if (from != null && to != null) {
+                if (!from.currency().equalsIgnoreCase(to.currency())) {
+                    throw new CurrencyMismatchException(from.currency(), to.currency());
+                }
+                currency = from.currency();
+            }
+        } catch (CurrencyMismatchException e) {
+            throw e;
+        } catch (Exception ignored) {}
+
         ScheduledTransfer st = new ScheduledTransfer();
         st.setUserId(req.userId());
         st.setFromAccountId(req.fromAccountId());
         st.setToAccountId(req.toAccountId());
         st.setAmount(req.amount());
+        st.setCurrency(currency);
         st.setFrequency(req.frequency().toUpperCase());
         st.setDescription(req.description());
         st.setStatus("ACTIVE");
@@ -102,6 +123,6 @@ public class ScheduledTransferService {
     private ScheduledTransferResponse toDto(ScheduledTransfer s) {
         return new ScheduledTransferResponse(s.getId(), s.getUserId(), s.getFromAccountId(), s.getToAccountId(),
                 s.getAmount(), s.getFrequency(), s.getDescription(), s.getStatus(), s.getNextExecutionTime(),
-                s.getLastExecutionTime(), s.getCreatedAt());
+                s.getLastExecutionTime(), s.getCreatedAt(), s.getCurrency());
     }
 }

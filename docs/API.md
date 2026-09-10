@@ -118,7 +118,8 @@ Base URL: `http://localhost:8082/accounts`
 ```json
 {
   "userId": "f8e1e1f2-abcd-4321-8abc-1234567890ab",
-  "accountType": "CHECKING"
+  "accountType": "CHECKING",
+  "currency": "INR"
 }
 ```
 - **Responses**:
@@ -129,6 +130,7 @@ Base URL: `http://localhost:8082/accounts`
   "userId": "f8e1e1f2-abcd-4321-8abc-1234567890ab",
   "accountNumber": "ACC-94827104",
   "accountType": "CHECKING",
+  "currency": "INR",
   "balance": 0.0000,
   "status": "ACTIVE",
   "createdAt": "2026-09-09T12:00:00Z"

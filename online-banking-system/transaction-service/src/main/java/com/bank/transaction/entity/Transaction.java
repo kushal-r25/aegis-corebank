@@ -30,7 +30,10 @@ public class Transaction {
     @Column(nullable = false)
     private BigDecimal amount;
 
-    /** INITIATED, RESERVED, COMPLETED, FAILED, COMPENSATED */
+    @Column(nullable = false)
+    private String currency = "USD"; // USD, INR
+
+    /** INITIATED, RESERVED, COMPLETED, FAILED, COMPENSATED, REVERSED */
     @Column(nullable = false)
     private String status;
 

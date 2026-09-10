@@ -8,5 +8,10 @@ public record TransferInitiatedEvent(
         String idempotencyKey,
         UUID fromAccountId,
         UUID toAccountId,
-        BigDecimal amount
-) {}
+        BigDecimal amount,
+        String currency
+) {
+    public TransferInitiatedEvent(UUID transactionId, String idempotencyKey, UUID fromAccountId, UUID toAccountId, BigDecimal amount) {
+        this(transactionId, idempotencyKey, fromAccountId, toAccountId, amount, "USD");
+    }
+}

@@ -89,3 +89,29 @@ When an admin or auditor initiates a reversal:
 | **CUSTOMER** | View own vaults, execute transfers, manage beneficiaries, schedule recurring payments. | `/dashboard`, `/accounts`, `/transfers`, `/beneficiaries`, `/scheduled-transfers`, `/transactions` |
 | **ADMIN** | Real-time fraud queue review, risk scoring, trip circuit breaker, override account locks. | `/admin`, `/accounts`, `/transactions`, `/beneficiaries`, `/security` |
 | **AUDITOR** | Cryptographic Merkle trace inspection, Kafka event stream examination, SOC-2 proof export. | `/auditor`, `/transactions`, `/accounts`, `/security` |
+
+---
+
+## 7. Multi-Currency Architecture & Invariants
+
+Aegis CoreBank enforces rigorous domain-level multi-currency isolation supporting **USD (US Dollar)** and **INR (Indian Rupee)**.
+
+```mermaid
+graph TD
+    subgraph Multi-Currency Transfer Validation
+        ClientReq[Initiate Transfer Request] --> SagaOrch[TransferSagaOrchestrator]
+        SagaOrch --> FetchSrc[Fetch Source Account Currency]
+        SagaOrch --> FetchDst[Fetch Target Account Currency]
+        FetchSrc --> CheckCurr{Source Currency == Target Currency?}
+        FetchDst --> CheckCurr
+        CheckCurr -- Yes --> AcquireLocks[Acquire Lexicographical Row Locks]
+        CheckCurr -- No (e.g. USD -> INR) --> RejectSaga[Reject with HTTP 422 CurrencyMismatchException]
+        RejectSaga --> AuditFail[Log TRANSFER_FAILED Audit Event]
+        AcquireLocks --> ExecuteDebit[Execute Atomic Ledger Debit & Credit]
+    end
+```
+
+### Core Invariants
+1. **Strong Typing & Zero Approximation**: Currencies are represented via `CurrencyCode` enum (`USD`, `INR`) and PostgreSQL `VARCHAR(10)` columns with check constraints (`CHECK (currency IN ('USD', 'INR'))`).
+2. **No Fictitious FX Synthesis**: Cross-currency transfers without dedicated external FX clearing rails are rejected at both API and orchestrator layers.
+3. **Segregated Liquidity Reporting**: Institutional reporting presents distinct ledger totals per currency (e.g., USD liquidity vs INR liquidity).

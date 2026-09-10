@@ -1,10 +1,14 @@
 package com.bank.account.service;
 
 import com.bank.account.entity.Account;
+import com.bank.account.entity.LedgerEntry;
 import com.bank.account.kafka.AccountEventPublisher;
 import com.bank.account.repository.AccountRepository;
+import com.bank.account.repository.LedgerEntryRepository;
+import com.bank.common.dto.CurrencyCode;
 import com.bank.common.exceptions.AccountClosedException;
 import com.bank.common.exceptions.AccountNotFoundException;
+import com.bank.common.exceptions.CurrencyMismatchException;
 import com.bank.common.exceptions.InsufficientFundsException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,16 +27,24 @@ import java.util.UUID;
 public class AccountService {
 
     private final AccountRepository accountRepo;
-    private final com.bank.account.repository.LedgerEntryRepository ledgerRepo;
+    private final LedgerEntryRepository ledgerRepo;
     private final AccountEventPublisher eventPublisher;
     private final SecureRandom random = new SecureRandom();
 
     @Transactional
     public Account createAccount(UUID userId, String accountType) {
+        return createAccount(userId, accountType, "USD");
+    }
+
+    @Transactional
+    public Account createAccount(UUID userId, String accountType, String currency) {
+        CurrencyCode validCurrency = CurrencyCode.fromString(currency != null ? currency : "USD");
+
         Account account = new Account();
         account.setUserId(userId);
         account.setAccountType(accountType);
         account.setAccountNumber(generateAccountNumber());
+        account.setCurrency(validCurrency.name());
         account.setBalance(BigDecimal.ZERO);
         account.setStatus("ACTIVE");
         return accountRepo.save(account);
@@ -98,7 +110,7 @@ public class AccountService {
         Account saved = accountRepo.save(account);
 
         recordLedger(accountId, amount, "DEPOSIT", saved.getBalance(), referenceId,
-                description != null ? description : "Funds deposit");
+                description != null ? description : "Funds deposit", saved.getCurrency());
         eventPublisher.publishBalanceChanged(accountId, saved.getBalance(), "DEPOSIT");
         return saved;
     }
@@ -122,7 +134,7 @@ public class AccountService {
         Account saved = accountRepo.save(account);
 
         recordLedger(accountId, amount.negate(), "WITHDRAWAL", saved.getBalance(), referenceId,
-                description != null ? description : "Funds withdrawal");
+                description != null ? description : "Funds withdrawal", saved.getCurrency());
         eventPublisher.publishBalanceChanged(accountId, saved.getBalance(), "WITHDRAWAL");
         return saved;
     }
@@ -151,7 +163,7 @@ public class AccountService {
         account.setBalance(account.getBalance().subtract(amount));
         Account saved = accountRepo.save(account);
 
-        recordLedger(accountId, amount.negate(), "TRANSFER_OUT", saved.getBalance(), referenceId, "Transfer debit");
+        recordLedger(accountId, amount.negate(), "TRANSFER_OUT", saved.getBalance(), referenceId, "Transfer debit", saved.getCurrency());
         eventPublisher.publishBalanceChanged(accountId, saved.getBalance(), "DEBIT");
         return saved;
     }
@@ -173,7 +185,7 @@ public class AccountService {
         account.setBalance(account.getBalance().add(amount));
         Account saved = accountRepo.save(account);
 
-        recordLedger(accountId, amount, "TRANSFER_IN", saved.getBalance(), referenceId, "Transfer credit");
+        recordLedger(accountId, amount, "TRANSFER_IN", saved.getBalance(), referenceId, "Transfer credit", saved.getCurrency());
         eventPublisher.publishBalanceChanged(accountId, saved.getBalance(), "CREDIT");
         return saved;
     }
@@ -196,6 +208,10 @@ public class AccountService {
         assertActive(debited);
         assertActive(credited);
 
+        if (!debited.getCurrency().equalsIgnoreCase(credited.getCurrency())) {
+            throw new CurrencyMismatchException(debited.getCurrency(), credited.getCurrency());
+        }
+
         if (debited.getBalance().compareTo(amount) < 0) {
             throw new InsufficientFundsException(debitedAccountId);
         }
@@ -206,8 +222,8 @@ public class AccountService {
         accountRepo.save(debited);
         accountRepo.save(credited);
 
-        recordLedger(debitedAccountId, amount.negate(), "REVERSAL_DEBIT", debited.getBalance(), referenceId, "Compensating reversal debit");
-        recordLedger(creditedAccountId, amount, "REVERSAL_CREDIT", credited.getBalance(), referenceId, "Compensating reversal credit");
+        recordLedger(debitedAccountId, amount.negate(), "REVERSAL_DEBIT", debited.getBalance(), referenceId, "Compensating reversal debit", debited.getCurrency());
+        recordLedger(creditedAccountId, amount, "REVERSAL_CREDIT", credited.getBalance(), referenceId, "Compensating reversal credit", credited.getCurrency());
 
         eventPublisher.publishBalanceChanged(debitedAccountId, debited.getBalance(), "REVERSAL_DEBIT");
         eventPublisher.publishBalanceChanged(creditedAccountId, credited.getBalance(), "REVERSAL_CREDIT");
@@ -230,6 +246,10 @@ public class AccountService {
         assertActive(from);
         assertActive(to);
 
+        if (!from.getCurrency().equalsIgnoreCase(to.getCurrency())) {
+            throw new CurrencyMismatchException(from.getCurrency(), to.getCurrency());
+        }
+
         if (from.getBalance().compareTo(amount) < 0) {
             throw new InsufficientFundsException(fromId);
         }
@@ -240,21 +260,22 @@ public class AccountService {
         accountRepo.save(from);
         accountRepo.save(to);
 
-        recordLedger(fromId, amount.negate(), "TRANSFER_OUT", from.getBalance(), null, "Direct transfer out");
-        recordLedger(toId, amount, "TRANSFER_IN", to.getBalance(), null, "Direct transfer in");
+        recordLedger(fromId, amount.negate(), "TRANSFER_OUT", from.getBalance(), null, "Direct transfer out", from.getCurrency());
+        recordLedger(toId, amount, "TRANSFER_IN", to.getBalance(), null, "Direct transfer in", to.getCurrency());
 
         eventPublisher.publishBalanceChanged(fromId, from.getBalance(), "TRANSFER_OUT");
         eventPublisher.publishBalanceChanged(toId, to.getBalance(), "TRANSFER_IN");
     }
 
-    public List<com.bank.account.entity.LedgerEntry> getLedger(UUID accountId) {
+    public List<LedgerEntry> getLedger(UUID accountId) {
         return ledgerRepo.findByAccountIdOrderByCreatedAtDesc(accountId);
     }
 
-    private void recordLedger(UUID accountId, BigDecimal amount, String type, BigDecimal balanceAfter, String refId, String desc) {
-        com.bank.account.entity.LedgerEntry entry = new com.bank.account.entity.LedgerEntry();
+    private void recordLedger(UUID accountId, BigDecimal amount, String type, BigDecimal balanceAfter, String refId, String desc, String currency) {
+        LedgerEntry entry = new LedgerEntry();
         entry.setAccountId(accountId);
         entry.setAmount(amount);
+        entry.setCurrency(currency != null ? currency : "USD");
         entry.setEntryType(type);
         entry.setBalanceAfter(balanceAfter);
         entry.setReferenceId(refId);

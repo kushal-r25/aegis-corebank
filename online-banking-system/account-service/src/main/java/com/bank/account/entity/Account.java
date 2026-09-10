@@ -25,7 +25,10 @@ public class Account {
     private String accountNumber;
 
     @Column(name = "account_type", nullable = false)
-    private String accountType; // SAVINGS, CURRENT
+    private String accountType; // SAVINGS, CURRENT, CHECKING, TREASURY, RESERVE
+
+    @Column(nullable = false)
+    private String currency = "USD"; // USD, INR
 
     @Column(nullable = false)
     private BigDecimal balance = BigDecimal.ZERO;

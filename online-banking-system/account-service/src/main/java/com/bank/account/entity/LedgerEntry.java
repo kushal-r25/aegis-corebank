@@ -24,6 +24,9 @@ public class LedgerEntry {
     @Column(nullable = false)
     private BigDecimal amount;
 
+    @Column(nullable = false)
+    private String currency = "USD"; // USD, INR
+
     @Column(name = "entry_type", nullable = false)
     private String entryType; // DEPOSIT, WITHDRAWAL, TRANSFER_IN, TRANSFER_OUT, REVERSAL_DEBIT, REVERSAL_CREDIT
 

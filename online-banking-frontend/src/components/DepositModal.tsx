@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Account } from '../types';
+import { formatMoney, getCurrencySymbol } from '../utils/currency';
 
 interface DepositModalProps {
   isOpen: boolean;
@@ -24,6 +25,10 @@ export const DepositModal: React.FC<DepositModalProps> = ({
 
   if (!isOpen) return null;
 
+  const currentAccount = accounts.find((a) => a.id === (accountId || accounts[0]?.id)) || accounts[0];
+  const symbol = getCurrencySymbol(currentAccount?.currency || 'USD');
+  const currencyCode = currentAccount?.currency || 'USD';
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -36,7 +41,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
     setLoading(true);
     setTimeout(() => {
       try {
-        onDeposit(accountId || accounts[0]?.id, amountNum, note || 'Direct Capital Inbound Deposit');
+        onDeposit(accountId || accounts[0]?.id, amountNum, note || `Direct Capital Inbound Deposit (${currencyCode})`);
         setAmount('');
         setNote('');
         setLoading(false);
@@ -76,16 +81,21 @@ export const DepositModal: React.FC<DepositModalProps> = ({
             >
               {accounts.map((acc) => (
                 <option key={acc.id} value={acc.id} disabled={acc.status === 'FROZEN'}>
-                  {acc.nickname || acc.accountType} (···· {acc.accountNumber.slice(-4)}) - ${parseFloat(acc.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD {acc.status === 'FROZEN' ? '[FROZEN]' : ''}
+                  {acc.nickname || acc.accountType} (···· {acc.accountNumber.slice(-4)}) - {formatMoney(acc.balance, acc.currency, true)} {acc.status === 'FROZEN' ? '[FROZEN]' : ''}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="font-label-meta uppercase text-on-surface-variant font-bold">Deposit Amount (USD)</label>
+            <div className="flex items-center justify-between">
+              <label className="font-label-meta uppercase text-on-surface-variant font-bold">Deposit Amount ({currencyCode})</label>
+              <span className="px-2 py-0.5 rounded bg-surface-container-high font-mono text-[10px] font-bold text-secondary">
+                {currencyCode} · {symbol}
+              </span>
+            </div>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 font-label-numeric-md font-bold text-on-surface-variant">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 font-label-numeric-md font-bold text-on-surface-variant">{symbol}</span>
               <input
                 type="number"
                 step="0.01"
@@ -102,7 +112,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
             <label className="font-label-meta uppercase text-on-surface-variant font-bold">Reference / Note (Optional)</label>
             <input
               type="text"
-              placeholder="e.g., Client Retainer Inbound"
+              placeholder="e.g., Inbound Liquidity Allocation"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className="w-full px-3 py-2 rounded-xl bg-surface-container-low border border-surface-container-highest text-on-surface text-body-sm focus:outline-none focus:border-secondary"
@@ -124,7 +134,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
               disabled={loading}
               className="flex-1 py-2.5 px-4 rounded-xl bg-secondary text-on-secondary font-semibold hover:bg-on-secondary-fixed-variant transition-colors shadow-sm flex items-center justify-center gap-2"
             >
-              {loading ? 'Crediting...' : 'Confirm Deposit'}
+              {loading ? 'Crediting...' : `Confirm Deposit (${currencyCode})`}
             </button>
           </div>
         </form>

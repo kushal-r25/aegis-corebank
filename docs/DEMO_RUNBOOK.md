@@ -213,3 +213,28 @@ SELECT id, account_id, amount, entry_type, balance_after, description FROM ledge
 
 > [!NOTE]
 > This system is an institutional **portfolio and reference architecture implementation**. For deployment in a regulated banking environment, external production integrations (Hardware Security Modules / PKCS#11, formal SWIFT/Fedwire settlement gateway adapters, and SOC-2 Type II audit controls) would be attached to the existing domain core.
+
+---
+
+## 8. Multi-Currency Demo Journey (USD & INR)
+
+### 8.1 Dual-Currency Dashboard Overview
+1. Navigate to **Customer Dashboard**.
+2. Observe the segregated liquidity cards:
+   - **USD Commercial Reserve**: `$227,890.50 USD`
+   - **INR Treasury Liquidity Reserve**: `₹2,50,000.00 INR`
+
+### 8.2 Executing INR Intra-Bank Transfers
+1. Navigate to **Transfers & Wires**.
+2. Select **INR Treasury Liquidity Reserve** (`₹2,50,000.00 INR`) as the source account.
+3. Select an INR beneficiary (e.g. **Tata Consultancy Services Domestic Reserve**).
+4. Enter transfer amount: `50000.00`.
+5. Authenticate with 2FA OTP `123456`.
+6. Confirm transfer settlement: Source balance updates to `₹2,00,000.00 INR` with sub-ledger entry recorded.
+
+### 8.3 Cross-Currency Rejection Invariant Demonstration
+1. Select a USD account as source and an INR counterparty as destination.
+2. Attempt to execute transfer.
+3. Observe instant rejection with safety error:
+   > *"Cross-currency transfers are not supported without FX conversion (Source: USD, Target: INR)"*
+4. No funds are reserved or deducted.

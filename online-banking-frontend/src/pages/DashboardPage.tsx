@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import type { Account, Beneficiary, LedgerEntry } from '../types';
+import { formatMoney, getCurrencySymbol } from '../utils/currency';
 import { DepositModal } from '../components/DepositModal';
 import { WithdrawModal } from '../components/WithdrawModal';
 import { TwoFactorModal } from '../components/TwoFactorModal';
@@ -19,9 +20,10 @@ export const DashboardPage: React.FC = () => {
   const [selectedAccId, setSelectedAccId] = useState<string | undefined>(undefined);
   const [is2FaOpen, setIs2FaOpen] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
-  const [pendingTxnData, setPendingTxnData] = useState<{ txnId: string; corrId: string; amount: string; payee: string; sourceName: string } | null>(null);
+  const [pendingTxnData, setPendingTxnData] = useState<{ txnId: string; corrId: string; amount: string; currency: string; payee: string; sourceName: string } | null>(null);
 
   // Quick Transfer simple state
+  const [quickSourceAccId, setQuickSourceAccId] = useState(accounts[0]?.id || '');
   const [quickAmount, setQuickAmount] = useState('2400.00');
   const [quickPayee, setQuickPayee] = useState(beneficiaries[0]?.name || 'Apex Global Tech Ltd');
   const [isTransferring, setIsTransferring] = useState(false);
@@ -31,13 +33,19 @@ export const DashboardPage: React.FC = () => {
     setLedgerEntries(api.ledger.getEntries());
   };
 
-  const totalLiquidity = accounts
-    .reduce((sum, a) => sum + (a.status !== 'FROZEN' ? parseFloat(a.balance) : 0), 0)
-    .toFixed(2);
+  // Group liquidity separately by currency — never add USD and INR directly!
+  const usdAccounts = accounts.filter((a) => (a.currency || 'USD') === 'USD');
+  const inrAccounts = accounts.filter((a) => a.currency === 'INR');
 
-  const bookBalanceTotal = accounts
-    .reduce((sum, a) => sum + parseFloat(a.bookBalance || a.balance), 0)
-    .toFixed(2);
+  const usdLiquidity = usdAccounts
+    .reduce((sum, a) => sum + (a.status !== 'FROZEN' ? parseFloat(a.balance || '0') : 0), 0);
+
+  const inrLiquidity = inrAccounts
+    .reduce((sum, a) => sum + (a.status !== 'FROZEN' ? parseFloat(a.balance || '0') : 0), 0);
+
+  const quickSourceAccount = accounts.find((a) => a.id === quickSourceAccId) || accounts[0];
+  const quickCurrency = quickSourceAccount?.currency || 'USD';
+  const quickSymbol = getCurrencySymbol(quickCurrency);
 
   const handleDeposit = (accId: string, amount: number, note?: string) => {
     api.accounts.deposit(accId, amount, note);
@@ -57,10 +65,11 @@ export const DashboardPage: React.FC = () => {
     setIsTransferring(true);
     setTimeout(() => {
       try {
-        const source = accounts[0];
+        const source = quickSourceAccount || accounts[0];
         const res = api.transfers.executeTransfer({
           sourceAccountId: source.id,
           amount: quickAmount,
+          currency: source.currency,
           beneficiaryName: quickPayee,
           idempotencyKey: `idem-${Date.now()}`,
           twoFactorOtp: otp,
@@ -73,6 +82,7 @@ export const DashboardPage: React.FC = () => {
           txnId: res.transactionId,
           corrId: res.correlationId,
           amount: quickAmount,
+          currency: source.currency || 'USD',
           payee: quickPayee,
           sourceName: source.nickname || source.accountType,
         });
@@ -106,8 +116,9 @@ export const DashboardPage: React.FC = () => {
         onClose={() => setIs2FaOpen(false)}
         onConfirm={handleConfirm2Fa}
         amount={quickAmount}
+        currency={quickCurrency}
         beneficiaryName={quickPayee}
-        sourceAccountName={accounts[0]?.nickname || 'Primary Checking'}
+        sourceAccountName={quickSourceAccount?.nickname || 'Primary Checking'}
         isProcessing={isTransferring}
       />
       {pendingTxnData && (
@@ -117,6 +128,7 @@ export const DashboardPage: React.FC = () => {
           transactionId={pendingTxnData.txnId}
           correlationId={pendingTxnData.corrId}
           amount={pendingTxnData.amount}
+          currency={pendingTxnData.currency}
           beneficiaryName={pendingTxnData.payee}
           sourceAccountName={pendingTxnData.sourceName}
         />
@@ -135,7 +147,7 @@ export const DashboardPage: React.FC = () => {
               <span className="inline-block w-2 h-2 rounded-full bg-on-tertiary-container animate-pulse"></span>
               <span>Core Vault Client Session Active</span>
               <span>•</span>
-              <span>ACID Synchronized</span>
+              <span>Multi-Currency (USD · INR) Active</span>
             </div>
             <h1 className="font-headline-lg text-headline-lg text-on-surface tracking-tight mt-1">
               Good morning, Eleanor
@@ -151,46 +163,45 @@ export const DashboardPage: React.FC = () => {
             <div className="flex flex-col">
               <span className="font-label-meta uppercase text-on-surface font-bold text-[10px]">Account Protection Protocol</span>
               <span className="font-body-sm text-xs text-on-surface-variant leading-tight">
-                Transactional Outbox active. Dual-sign required on transfers exceeding $10,000.00 USD.
+                Transactional Outbox active. Dual-sign required on high-value transfers. Matching currencies enforced.
               </span>
             </div>
           </div>
         </div>
 
-        {/* Primary Liquidity & Ledger Matrix */}
+        {/* Primary Liquidity & Ledger Matrix: Segregated USD and INR */}
         <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-          {/* Net Available Liquidity */}
+          {/* Net USD Liquidity */}
           <div className="p-5 rounded-xl bg-surface-container-low border border-surface-container-highest flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="font-label-meta uppercase tracking-wider text-on-surface-variant text-[11px]">Net Available Liquidity</span>
-              <span className="px-2 py-0.5 rounded bg-surface-container-high font-label-numeric-sm text-[10px] text-secondary font-bold">CLEARED</span>
+              <span className="font-label-meta uppercase tracking-wider text-on-surface-variant text-[11px]">USD Available Liquidity</span>
+              <span className="px-2 py-0.5 rounded bg-surface-container-high font-label-numeric-sm text-[10px] text-secondary font-bold">USD CLEARED</span>
             </div>
             <div className="my-2">
               <div className="font-label-numeric-lg text-2xl lg:text-3xl text-on-surface font-bold">
-                ${parseFloat(totalLiquidity).toLocaleString('en-US', { minimumFractionDigits: 2 })} <span className="text-sm font-normal text-on-surface-variant">USD</span>
+                {formatMoney(usdLiquidity, 'USD')} <span className="text-sm font-normal text-on-surface-variant">USD</span>
               </div>
             </div>
             <div className="flex items-center gap-1.5 text-on-tertiary-container font-label-numeric-sm text-xs font-semibold">
               <span className="material-symbols-outlined text-[16px]">trending_up</span>
-              <span>+$3,250.00 (+1.32%)</span>
-              <span className="text-on-surface-variant font-normal text-[11px] ml-1">last 24h</span>
+              <span>{usdAccounts.length} Active USD Accounts</span>
             </div>
           </div>
 
-          {/* Book / Ledger Balance */}
+          {/* Net INR Liquidity */}
           <div className="p-5 rounded-xl bg-surface-container-low border border-surface-container-highest flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="font-label-meta uppercase tracking-wider text-on-surface-variant text-[11px]">Book Ledger Balance</span>
-              <span className="px-2 py-0.5 rounded bg-surface-container-high font-label-numeric-sm text-[10px] text-on-surface-variant font-bold">SETTLEMENT DB</span>
+              <span className="font-label-meta uppercase tracking-wider text-on-surface-variant text-[11px]">INR Available Liquidity</span>
+              <span className="px-2 py-0.5 rounded bg-surface-container-high font-label-numeric-sm text-[10px] text-on-tertiary-container font-bold">INR CLEARED</span>
             </div>
             <div className="my-2">
               <div className="font-label-numeric-lg text-2xl lg:text-3xl text-on-surface font-bold">
-                ${parseFloat(bookBalanceTotal).toLocaleString('en-US', { minimumFractionDigits: 2 })} <span className="text-sm font-normal text-on-surface-variant">USD</span>
+                {formatMoney(inrLiquidity, 'INR')} <span className="text-sm font-normal text-on-surface-variant">INR</span>
               </div>
             </div>
             <div className="flex items-center gap-1.5 text-on-surface-variant text-xs">
-              <span className="material-symbols-outlined text-[16px] text-secondary">timelapse</span>
-              <span>Pending In-clearing: <strong className="font-mono text-on-surface">$2,500.00 USD</strong></span>
+              <span className="material-symbols-outlined text-[16px] text-secondary">currency_rupee</span>
+              <span>{inrAccounts.length} Active INR Reserve Accounts</span>
             </div>
           </div>
 
@@ -202,12 +213,12 @@ export const DashboardPage: React.FC = () => {
             </div>
             <div className="my-2">
               <div className="font-label-numeric-lg text-2xl lg:text-3xl text-on-surface font-bold">
-                +$814.20 <span className="text-sm font-normal text-on-surface-variant">MTD</span>
+                +$814.20 <span className="text-sm font-normal text-on-surface-variant">USD MTD</span>
               </div>
             </div>
             <div className="flex items-center justify-between text-xs text-on-surface-variant">
-              <span>Est. Annual: <strong className="text-on-surface font-mono">+$9,998.40</strong></span>
-              <span className="text-secondary font-semibold">Auto-Compounding</span>
+              <span>Treasury Pool: <strong className="text-on-surface font-mono">Auto-Compounding</strong></span>
+              <span className="text-secondary font-semibold">USD Vault</span>
             </div>
           </div>
         </div>
@@ -288,27 +299,32 @@ export const DashboardPage: React.FC = () => {
               key={acc.id}
               className="flex flex-col justify-between p-5 rounded-2xl bg-surface-container-lowest border border-surface-container-highest shadow-sm hover:shadow-md transition-all relative overflow-hidden group"
             >
-              <div className={`absolute top-0 left-0 right-0 h-1.5 ${index === 0 ? 'bg-secondary' : index === 1 ? 'bg-on-tertiary-container' : 'bg-primary-container'}`}></div>
+              <div className={`absolute top-0 left-0 right-0 h-1.5 ${acc.currency === 'INR' ? 'bg-amber-500' : index === 0 ? 'bg-secondary' : 'bg-on-tertiary-container'}`}></div>
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-secondary text-[20px]">account_balance</span>
                     <h3 className="font-headline-sm text-body-lg font-bold text-on-surface truncate">{acc.nickname || acc.accountType}</h3>
                   </div>
-                  <span className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-meta text-[10px] font-bold ${acc.status === 'ACTIVE' ? 'bg-tertiary-container/20 text-on-tertiary-container' : 'bg-error-container text-error'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${acc.status === 'ACTIVE' ? 'bg-on-tertiary-container' : 'bg-error'}`}></span>
-                    {acc.status}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-surface-container text-secondary">
+                      {acc.currency || 'USD'}
+                    </span>
+                    <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full font-label-meta text-[10px] font-bold ${acc.status === 'ACTIVE' ? 'bg-tertiary-container/20 text-on-tertiary-container' : 'bg-error-container text-error'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${acc.status === 'ACTIVE' ? 'bg-on-tertiary-container' : 'bg-error'}`}></span>
+                      {acc.status}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="font-label-numeric-sm text-xs text-on-surface-variant mb-4">
-                  IBAN: <span className="font-semibold text-on-surface font-mono tracking-tight">{acc.iban || acc.accountNumber}</span>
+                  Account / IBAN: <span className="font-semibold text-on-surface font-mono tracking-tight">{acc.iban || acc.accountNumber}</span>
                 </div>
 
                 <div className="flex flex-col my-3 py-2.5 px-3.5 rounded-xl bg-surface-container-low border border-surface-container-highest">
                   <span className="font-label-meta text-[10px] uppercase text-on-surface-variant font-bold">Available Balance</span>
                   <div className="font-label-numeric-lg text-xl text-on-surface font-bold mt-0.5">
-                    ${parseFloat(acc.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-on-surface-variant">USD</span>
+                    {formatMoney(acc.balance, acc.currency, true)}
                   </div>
                 </div>
 
@@ -316,7 +332,7 @@ export const DashboardPage: React.FC = () => {
                   <div className="flex flex-col gap-1 my-2">
                     <div className="flex justify-between text-xs">
                       <span className="text-on-surface-variant">Daily Limit:</span>
-                      <span className="font-mono text-on-surface">${parseFloat(acc.dailyLimitUsed || '0').toLocaleString('en-US')} / ${parseFloat(acc.dailyLimit).toLocaleString('en-US')}</span>
+                      <span className="font-mono text-on-surface">{formatMoney(acc.dailyLimitUsed || '0', acc.currency)} / {formatMoney(acc.dailyLimit, acc.currency)}</span>
                     </div>
                     <div className="w-full h-1.5 rounded-full bg-surface-container-highest overflow-hidden">
                       <div
@@ -376,6 +392,21 @@ export const DashboardPage: React.FC = () => {
 
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
+              <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">Originating Ledger</label>
+              <select
+                value={quickSourceAccId}
+                onChange={(e) => setQuickSourceAccId(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-surface-container-low border border-surface-container-highest text-on-surface text-body-sm font-semibold focus:outline-none focus:border-secondary"
+              >
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id} disabled={acc.status === 'FROZEN'}>
+                    {acc.nickname || acc.accountType} ({acc.currency}) - {formatMoney(acc.balance, acc.currency)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
               <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">Beneficiary Payee</label>
               <select
                 value={quickPayee}
@@ -384,16 +415,16 @@ export const DashboardPage: React.FC = () => {
               >
                 {beneficiaries.map((b) => (
                   <option key={b.id} value={b.name}>
-                    {b.name} ({b.bankName})
+                    {b.name} ({b.bankName}) [{b.currency || 'USD'}]
                   </option>
                 ))}
               </select>
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">Monetary Sum (USD)</label>
+              <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">Monetary Sum ({quickCurrency})</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono font-bold text-on-surface-variant">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono font-bold text-on-surface-variant">{quickSymbol}</span>
                 <input
                   type="number"
                   step="0.01"
@@ -407,11 +438,11 @@ export const DashboardPage: React.FC = () => {
             <div className="p-3 rounded-xl bg-surface-container-low text-xs text-on-surface-variant flex flex-col gap-1">
               <div className="flex justify-between">
                 <span>Interbank Routing Fee:</span>
-                <span className="font-mono font-bold text-on-tertiary-container">$0.00 USD (Waived)</span>
+                <span className="font-mono font-bold text-on-tertiary-container">{quickSymbol}0.00 (Waived)</span>
               </div>
               <div className="flex justify-between">
                 <span>Settlement Engine:</span>
-                <span className="font-semibold text-on-surface">Fedwire Same-Day (ACID Guaranteed)</span>
+                <span className="font-semibold text-on-surface">RTGS / Fedwire (ACID Guaranteed)</span>
               </div>
             </div>
 
@@ -421,7 +452,7 @@ export const DashboardPage: React.FC = () => {
               className="w-full py-2.5 px-4 bg-primary text-on-primary font-semibold rounded-xl hover:bg-inverse-surface transition-colors flex items-center justify-center gap-2 shadow-sm"
             >
               <span className="material-symbols-outlined text-[18px]">verified_user</span>
-              <span>Authorize &amp; Dispatch Wire</span>
+              <span>Authorize &amp; Dispatch Wire ({quickCurrency})</span>
             </button>
           </div>
         </div>
@@ -457,6 +488,9 @@ export const DashboardPage: React.FC = () => {
                       <span className="font-mono text-[10px]">{entry.transactionId}</span>
                       <span>•</span>
                       <span className="text-[11px]">{new Date(entry.timestamp).toLocaleDateString()}</span>
+                      <span className="px-1.5 py-0.2 rounded bg-surface-container text-secondary font-mono text-[9px] font-bold">
+                        {entry.currency || 'USD'}
+                      </span>
                       {entry.status === 'REVERSED' && (
                         <span className="px-1.5 py-0.2 rounded bg-error-container text-error font-bold text-[9px]">REVERSED</span>
                       )}
@@ -466,10 +500,10 @@ export const DashboardPage: React.FC = () => {
 
                 <div className="flex flex-col items-end shrink-0">
                   <span className={`font-label-numeric-md font-bold text-body-sm ${entry.type === 'CREDIT' ? 'text-on-tertiary-container' : 'text-on-surface'}`}>
-                    {entry.type === 'CREDIT' ? '+' : '-'}${parseFloat(entry.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {entry.type === 'CREDIT' ? '+' : '-'}{formatMoney(entry.amount, entry.currency || 'USD')}
                   </span>
                   <span className="font-label-numeric-sm text-[10px] text-on-surface-variant">
-                    Bal: ${parseFloat(entry.balanceAfter).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    Bal: {formatMoney(entry.balanceAfter, entry.currency || 'USD')}
                   </span>
                 </div>
               </div>

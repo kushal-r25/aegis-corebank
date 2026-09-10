@@ -28,6 +28,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_FOUND, ex, req);
     }
 
+    @ExceptionHandler(CurrencyMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleCurrencyMismatch(RuntimeException ex, WebRequest req) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex, req);
+    }
+
     @ExceptionHandler(InsufficientFundsException.class)
     public ResponseEntity<ErrorResponse> handleInsufficientFunds(RuntimeException ex, WebRequest req) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, ex, req);

@@ -12,5 +12,10 @@ public record LedgerEntryResponse(
         BigDecimal balanceAfter,
         String referenceId,
         String description,
-        Instant createdAt
-) {}
+        Instant createdAt,
+        String currency
+) {
+    public LedgerEntryResponse(UUID id, UUID accountId, BigDecimal amount, String entryType, BigDecimal balanceAfter, String referenceId, String description, Instant createdAt) {
+        this(id, accountId, amount, entryType, balanceAfter, referenceId, description, createdAt, "USD");
+    }
+}

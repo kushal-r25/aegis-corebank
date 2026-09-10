@@ -26,6 +26,8 @@ pnpm-debug.log*
 
 # Secrets, Environment & Cryptographic Keys
 .env
+.env.prod
+.env.*.local
 .env.local
 .env.*.local
 *.pem

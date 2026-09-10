@@ -2,6 +2,7 @@ package com.bank.transaction.client;
 
 import com.bank.common.dto.request.CreditRequest;
 import com.bank.common.dto.request.DebitRequest;
+import com.bank.common.dto.response.AccountResponse;
 import com.bank.common.exceptions.AccountNotFoundException;
 import com.bank.common.exceptions.InsufficientFundsException;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,17 @@ public class AccountServiceClient {
 
     public AccountServiceClient(@Value("${services.account.base-url}") String baseUrl) {
         this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+    }
+
+    public AccountResponse getAccount(UUID accountId) {
+        try {
+            return restClient.get()
+                    .uri("/internal/accounts/{id}", accountId)
+                    .retrieve()
+                    .body(AccountResponse.class);
+        } catch (HttpClientErrorException.NotFound e) {
+            throw new AccountNotFoundException(accountId);
+        }
     }
 
     public void debit(UUID accountId, BigDecimal amount) {

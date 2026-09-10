@@ -33,7 +33,6 @@ const STORAGE_KEYS = {
   TRACE: 'aegis_transaction_trace',
 };
 
-// Initializer helper
 function loadStorage<T>(key: string, defaultValue: T): T {
   try {
     const item = localStorage.getItem(key);
@@ -61,14 +60,15 @@ export const setDemoMode = (enabled: boolean): void => {
   localStorage.setItem('aegis_mode', enabled ? 'demo' : 'live');
 };
 
+const isProd = import.meta.env.PROD;
+
 export const SERVICE_URLS = {
-  AUTH: 'http://localhost:8081',
-  ACCOUNT: 'http://localhost:8082',
-  TRANSACTION: 'http://localhost:8083',
-  NOTIFICATION: 'http://localhost:8084',
+  AUTH: import.meta.env.VITE_AUTH_API_URL || (isProd ? '/api/auth' : 'http://localhost:8081'),
+  ACCOUNT: import.meta.env.VITE_ACCOUNT_API_URL || (isProd ? '/api' : 'http://localhost:8082'),
+  TRANSACTION: import.meta.env.VITE_TRANSACTION_API_URL || (isProd ? '/api' : 'http://localhost:8083'),
+  NOTIFICATION: import.meta.env.VITE_NOTIFICATION_API_URL || (isProd ? '/api/notifications' : 'http://localhost:8084'),
 };
 
-// Axios instance with JWT + Correlation-Id headers
 export const httpClient = axios.create({
   timeout: 5000,
 });
@@ -82,7 +82,6 @@ httpClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Background sync helper
 function tryBackendSync(promise: Promise<any>): void {
   if (!isDemoMode()) {
     promise.catch((err) => {
@@ -91,7 +90,6 @@ function tryBackendSync(promise: Promise<any>): void {
   }
 }
 
-// Helper for Real API calls with explicit error surfacing
 export async function executeApiCall<T>(promise: Promise<T>, fallbackFn: () => T): Promise<T> {
   if (isDemoMode()) {
     return fallbackFn();
@@ -100,7 +98,6 @@ export async function executeApiCall<T>(promise: Promise<T>, fallbackFn: () => T
     const res = await promise;
     return res;
   } catch (err: any) {
-    // Surface the actual backend error rather than silently faking success
     const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Backend service communication error';
     console.error('Backend API Error:', msg);
     throw new Error(msg);
@@ -159,6 +156,7 @@ export const api = {
         accountName: account.nickname || account.accountType,
         accountNumber: account.accountNumber.slice(-4),
         amount: amountNum.toFixed(2),
+        currency: account.currency || 'USD',
         type: 'CREDIT',
         status: 'SETTLED',
         description: description || 'Immediate Liquidity Inbound Deposit',
@@ -206,6 +204,7 @@ export const api = {
         accountName: account.nickname || account.accountType,
         accountNumber: account.accountNumber.slice(-4),
         amount: amountNum.toFixed(2),
+        currency: account.currency || 'USD',
         type: 'DEBIT',
         status: 'SETTLED',
         description: description || 'Authorized Vault Cash/Liquidity Withdrawal',
@@ -262,16 +261,29 @@ export const api = {
       const amountNum = parseFloat(req.amount);
       if (isNaN(amountNum) || amountNum <= 0) throw new Error('Invalid monetary transfer amount');
 
-      const currentBal = parseFloat(source.balance);
-      if (currentBal < amountNum) {
-        throw new Error(`Insufficient funds: Available $${currentBal.toFixed(2)} USD, Requested $${amountNum.toFixed(2)} USD`);
+      const srcCurrency = source.currency || 'USD';
+
+      // Cross-currency validation
+      if (req.currency && req.currency !== srcCurrency) {
+        throw new Error(`Cross-currency transfers are not supported without FX conversion (Source: ${srcCurrency}, Requested: ${req.currency})`);
       }
 
-      // Check daily limit
+      if (req.targetAccountId) {
+        const targetAcc = accounts.find((a) => a.id === req.targetAccountId);
+        if (targetAcc && (targetAcc.currency || 'USD') !== srcCurrency) {
+          throw new Error(`Cross-currency transfers are not supported without FX conversion (Source: ${srcCurrency}, Target: ${targetAcc.currency})`);
+        }
+      }
+
+      const currentBal = parseFloat(source.balance);
+      if (currentBal < amountNum) {
+        throw new Error(`Insufficient funds: Available ${srcCurrency === 'INR' ? '₹' : '$'}${currentBal.toFixed(2)} ${srcCurrency}, Requested ${srcCurrency === 'INR' ? '₹' : '$'}${amountNum.toFixed(2)} ${srcCurrency}`);
+      }
+
       const dailyLimit = parseFloat(source.dailyLimit || '50000');
       const dailyUsed = parseFloat(source.dailyLimitUsed || '0');
       if (dailyUsed + amountNum > dailyLimit) {
-        throw new Error(`Exceeds daily Fedwire limit of $${dailyLimit.toFixed(2)} USD (Used: $${dailyUsed.toFixed(2)})`);
+        throw new Error(`Exceeds daily limit of ${srcCurrency === 'INR' ? '₹' : '$'}${dailyLimit.toFixed(2)} ${srcCurrency}`);
       }
 
       const newBal = (currentBal - amountNum).toFixed(2);
@@ -291,6 +303,7 @@ export const api = {
         accountName: source.nickname || source.accountType,
         accountNumber: source.accountNumber.slice(-4),
         amount: amountNum.toFixed(2),
+        currency: srcCurrency,
         type: 'DEBIT',
         status: 'SETTLED',
         description: req.note || `Wire Outbound: ${req.beneficiaryName || 'Beneficiary'}`,
@@ -305,8 +318,7 @@ export const api = {
       entries.unshift(entry);
       saveStorage(STORAGE_KEYS.LEDGER_ENTRIES, entries);
 
-      // If high amount (> $10,000), also record in fraud / risk queue for compliance view
-      if (amountNum >= 10000) {
+      if (amountNum >= (srcCurrency === 'INR' ? 500000 : 10000)) {
         const fraudQueue = api.admin.getFraudRecords();
         fraudQueue.unshift({
           id: `frd-${Date.now().toString().slice(-4)}`,
@@ -315,8 +327,9 @@ export const api = {
           sourceAccountName: `Eleanor Vance (${source.nickname || 'Checking'})`,
           beneficiaryName: req.beneficiaryName || 'External Payee',
           amount: amountNum.toFixed(2),
+          currency: srcCurrency,
           riskScore: Math.floor(60 + Math.random() * 35),
-          reason: 'Dual-sign high value outbound transfer exceeding $10,000 threshold',
+          reason: `High value outbound transfer exceeding standard threshold (${srcCurrency})`,
           status: 'FLAGGED',
           createdAt: new Date().toISOString(),
           flaggedRules: ['RULE_HIGH_VALUE_DEPOSIT_DRAIN', 'RULE_DUAL_SIGN_REQUIRED'],
@@ -326,7 +339,7 @@ export const api = {
 
       tryBackendSync(httpClient.post(`${SERVICE_URLS.TRANSACTION}/transfers`, {
         fromAccountId: req.sourceAccountId,
-        toAccountId: 'b2c3d4e5-f6a7-8901-bcde-fa2345678901',
+        toAccountId: req.targetAccountId || 'b2c3d4e5-f6a7-8901-bcde-fa2345678901',
         amount: amountNum,
         idempotencyKey: req.idempotencyKey,
       }));
@@ -362,6 +375,7 @@ export const api = {
         accountName: acc.nickname || acc.accountType,
         accountNumber: acc.accountNumber.slice(-4),
         amount: targetEntry.amount,
+        currency: targetEntry.currency || acc.currency || 'USD',
         type: 'CREDIT',
         status: 'SETTLED',
         description: `Compensating Paired Reversal: ${targetEntry.description} (Reason: ${reason})`,

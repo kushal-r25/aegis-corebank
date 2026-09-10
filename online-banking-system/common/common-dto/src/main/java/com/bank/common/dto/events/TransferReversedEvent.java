@@ -8,5 +8,10 @@ public record TransferReversedEvent(
         UUID fromAccountId,
         UUID toAccountId,
         BigDecimal amount,
-        String reason
-) {}
+        String reason,
+        String currency
+) {
+    public TransferReversedEvent(UUID transactionId, UUID fromAccountId, UUID toAccountId, BigDecimal amount, String reason) {
+        this(transactionId, fromAccountId, toAccountId, amount, reason, "USD");
+    }
+}

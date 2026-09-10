@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
 import type { Account, LedgerEntry } from '../types';
+import { formatMoney } from '../utils/currency';
 import { DepositModal } from '../components/DepositModal';
 import { WithdrawModal } from '../components/WithdrawModal';
 import { FreezeAccountModal } from '../components/FreezeAccountModal';
@@ -82,7 +83,7 @@ export const AccountsPage: React.FC = () => {
             Accounts &amp; Sub-Ledger Balances
           </h1>
           <p className="text-body-sm text-on-surface-variant mt-0.5">
-            Real-time balance breakdown, daily Fedwire limits, and state overrides with ACID compliance.
+            Real-time balance breakdown across USD &amp; INR currencies with ACID compliance.
           </p>
         </div>
 
@@ -133,13 +134,18 @@ export const AccountsPage: React.FC = () => {
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="font-headline-sm text-body-lg font-bold text-on-surface truncate">{acc.nickname || acc.accountType}</span>
-                <span className={`px-2 py-0.5 rounded-full font-label-meta text-[10px] font-bold ${acc.status === 'ACTIVE' ? 'bg-tertiary-container/20 text-on-tertiary-container' : 'bg-error-container text-error'}`}>
-                  {acc.status}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-surface-container text-secondary">
+                    {acc.currency || 'USD'}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full font-label-meta text-[10px] font-bold ${acc.status === 'ACTIVE' ? 'bg-tertiary-container/20 text-on-tertiary-container' : 'bg-error-container text-error'}`}>
+                    {acc.status}
+                  </span>
+                </div>
               </div>
               <p className="font-mono text-xs text-on-surface-variant mb-3">{acc.iban || acc.accountNumber}</p>
               <div className="font-label-numeric-lg text-2xl font-bold text-on-surface">
-                ${parseFloat(acc.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-on-surface-variant">USD</span>
+                {formatMoney(acc.balance, acc.currency, true)}
               </div>
             </div>
           );
@@ -158,12 +164,15 @@ export const AccountsPage: React.FC = () => {
                 <h2 className="font-headline-md text-headline-sm font-bold text-on-surface">
                   {selectedAccount.nickname || selectedAccount.accountType}
                 </h2>
+                <span className="px-2.5 py-0.5 rounded font-mono text-xs font-bold bg-surface-container-high text-secondary">
+                  {selectedAccount.currency || 'USD'}
+                </span>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${selectedAccount.status === 'ACTIVE' ? 'bg-tertiary-container/20 text-on-tertiary-container' : 'bg-error-container text-error'}`}>
                   {selectedAccount.status}
                 </span>
               </div>
               <p className="font-mono text-xs text-on-surface-variant mt-0.5">
-                IBAN: <strong className="text-on-surface">{selectedAccount.iban || selectedAccount.accountNumber}</strong> · Routing: <strong className="text-on-surface">{selectedAccount.routingNumber}</strong>
+                Account: <strong className="text-on-surface">{selectedAccount.iban || selectedAccount.accountNumber}</strong> · Routing: <strong className="text-on-surface">{selectedAccount.routingNumber}</strong>
               </p>
             </div>
           </div>
@@ -172,13 +181,13 @@ export const AccountsPage: React.FC = () => {
             <div className="flex flex-col text-right">
               <span className="font-label-meta uppercase text-on-surface-variant text-[10px]">Available Liquidity</span>
               <span className="font-label-numeric-lg text-xl font-bold text-on-surface">
-                ${parseFloat(selectedAccount.availableLiquidity || selectedAccount.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                {formatMoney(selectedAccount.availableLiquidity || selectedAccount.balance, selectedAccount.currency, true)}
               </span>
             </div>
             <div className="flex flex-col text-right">
               <span className="font-label-meta uppercase text-on-surface-variant text-[10px]">Book Balance</span>
               <span className="font-label-numeric-lg text-xl font-bold text-on-surface-variant">
-                ${parseFloat(selectedAccount.bookBalance || selectedAccount.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                {formatMoney(selectedAccount.bookBalance || selectedAccount.balance, selectedAccount.currency, true)}
               </span>
             </div>
           </div>
@@ -187,9 +196,9 @@ export const AccountsPage: React.FC = () => {
         {/* Limit Bar */}
         <div className="p-4 rounded-xl bg-surface-container-low border border-surface-container-highest flex flex-col gap-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-label-meta uppercase font-bold text-on-surface-variant">Daily Fedwire Utilization</span>
+            <span className="font-label-meta uppercase font-bold text-on-surface-variant">Daily Limit Utilization ({selectedAccount.currency || 'USD'})</span>
             <span className="font-mono font-bold text-on-surface">
-              ${parseFloat(selectedAccount.dailyLimitUsed || '0').toLocaleString('en-US')} / ${parseFloat(selectedAccount.dailyLimit || '50000').toLocaleString('en-US')} USD
+              {formatMoney(selectedAccount.dailyLimitUsed || '0', selectedAccount.currency)} / {formatMoney(selectedAccount.dailyLimit || '50000', selectedAccount.currency)}
             </span>
           </div>
           <div className="w-full h-2 rounded-full bg-surface-container-highest overflow-hidden">
@@ -228,15 +237,16 @@ export const AccountsPage: React.FC = () => {
                   <th className="p-3">Type</th>
                   <th className="p-3">Transaction ID / Correlation</th>
                   <th className="p-3">Description</th>
+                  <th className="p-3">Currency</th>
                   <th className="p-3">Timestamp</th>
-                  <th className="p-3 text-right">Amount (USD)</th>
+                  <th className="p-3 text-right">Amount</th>
                   <th className="p-3 text-right">Balance After</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-container-highest">
                 {filteredLedger.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-6 text-center text-on-surface-variant">
+                    <td colSpan={7} className="p-6 text-center text-on-surface-variant">
                       No ledger records found.
                     </td>
                   </tr>
@@ -260,14 +270,15 @@ export const AccountsPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="p-3 font-semibold text-on-surface">{entry.description}</td>
+                      <td className="p-3 font-mono font-bold text-secondary">{entry.currency || selectedAccount.currency || 'USD'}</td>
                       <td className="p-3 font-mono text-on-surface-variant">{new Date(entry.timestamp).toLocaleString()}</td>
                       <td className="p-3 text-right font-label-numeric-md font-bold">
                         <span className={entry.type === 'CREDIT' ? 'text-on-tertiary-container' : 'text-on-surface'}>
-                          {entry.type === 'CREDIT' ? '+' : '-'}${parseFloat(entry.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          {entry.type === 'CREDIT' ? '+' : '-'}{formatMoney(entry.amount, entry.currency || selectedAccount.currency || 'USD')}
                         </span>
                       </td>
                       <td className="p-3 text-right font-mono text-on-surface font-semibold">
-                        ${parseFloat(entry.balanceAfter).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        {formatMoney(entry.balanceAfter, entry.currency || selectedAccount.currency || 'USD')}
                       </td>
                     </tr>
                   ))

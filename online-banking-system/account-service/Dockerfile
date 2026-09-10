@@ -1,8 +1,6 @@
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
-COPY pom.xml .
-COPY common ./common
-COPY account-service ./account-service
+COPY . .
 RUN mvn -q -pl account-service -am -DskipTests package
 
 FROM eclipse-temurin:21-jre-alpine
