@@ -5,7 +5,7 @@ interface TransferSuccessModalProps {
   isOpen: boolean;
   onClose: () => void;
   transactionId: string;
-  correlationId: string;
+  correlationId?: string;
   amount: string;
   currency?: string;
   beneficiaryName: string;
@@ -18,7 +18,7 @@ export const TransferSuccessModal: React.FC<TransferSuccessModalProps> = ({
   transactionId,
   correlationId,
   amount,
-  currency = 'USD',
+  currency = 'INR',
   beneficiaryName,
   sourceAccountName,
 }) => {
@@ -32,28 +32,34 @@ export const TransferSuccessModal: React.FC<TransferSuccessModalProps> = ({
             <span className="material-symbols-outlined text-[32px]">check_circle</span>
           </div>
           <span className="font-label-meta text-xs uppercase font-bold text-on-tertiary-container tracking-wider">
-            Transfer Authorized &amp; Settled
+            Transfer Successful!
           </span>
           <h3 className="font-headline-sm text-2xl font-bold text-on-surface">
             {formatMoney(amount, currency, true)}
           </h3>
           <p className="text-body-sm text-on-surface-variant">
-            Dispatched from <strong className="text-on-surface">{sourceAccountName}</strong> to <strong className="text-on-surface">{beneficiaryName}</strong>
+            Sent from <strong className="text-on-surface">{sourceAccountName}</strong> to <strong className="text-on-surface">{beneficiaryName}</strong>
           </p>
         </div>
 
         <div className="p-4 rounded-xl bg-surface-container-low border border-surface-container-highest flex flex-col gap-2 text-xs">
           <div className="flex justify-between">
-            <span className="text-on-surface-variant font-label-meta uppercase text-[10px]">Transaction ID:</span>
+            <span className="text-on-surface-variant font-label-meta uppercase text-[10px]">Reference / Txn ID:</span>
             <span className="font-mono font-bold text-on-surface">{transactionId}</span>
           </div>
+          {correlationId && (
+            <div className="flex justify-between">
+              <span className="text-on-surface-variant font-label-meta uppercase text-[10px]">Session Ref:</span>
+              <span className="font-mono text-on-surface-variant text-[11px]">{correlationId}</span>
+            </div>
+          )}
           <div className="flex justify-between">
-            <span className="text-on-surface-variant font-label-meta uppercase text-[10px]">Correlation Hash:</span>
-            <span className="font-mono text-on-surface-variant">{correlationId}</span>
+            <span className="text-on-surface-variant font-label-meta uppercase text-[10px]">Payment Mode:</span>
+            <span className="font-mono font-bold text-on-tertiary-container">IMPS Instant Settlement</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-on-surface-variant font-label-meta uppercase text-[10px]">Currency / Settlement:</span>
-            <span className="font-mono font-bold text-on-tertiary-container">{currency} · STRICT ACID</span>
+            <span className="text-on-surface-variant font-label-meta uppercase text-[10px]">Status:</span>
+            <span className="font-semibold text-on-tertiary-container">Completed &amp; Settled</span>
           </div>
         </div>
 

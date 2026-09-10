@@ -27,7 +27,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
 
   const selectedAcc = accounts.find((a) => a.id === (accountId || accounts[0]?.id)) || accounts[0];
   const availableBal = selectedAcc ? parseFloat(selectedAcc.balance) : 0;
-  const currencyCode = selectedAcc?.currency || 'USD';
+  const currencyCode = selectedAcc?.currency || 'INR';
   const symbol = getCurrencySymbol(currencyCode);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -46,7 +46,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
     setLoading(true);
     setTimeout(() => {
       try {
-        onWithdraw(accountId || accounts[0]?.id, amountNum, note || `Authorized Vault Cash/Liquidity Withdrawal (${currencyCode})`);
+        onWithdraw(accountId || accounts[0]?.id, amountNum, note || `Cash Withdrawal (${currencyCode})`);
         setAmount('');
         setNote('');
         setLoading(false);
@@ -67,8 +67,8 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
               <span className="material-symbols-outlined text-[22px]">output</span>
             </div>
             <div>
-              <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Withdraw Funds</h3>
-              <p className="font-label-meta text-label-meta uppercase text-on-surface-variant">Vault Outbound Liquidity</p>
+              <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Withdraw Money</h3>
+              <p className="font-label-meta text-label-meta uppercase text-on-surface-variant">Account Debit / ATM</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg text-on-surface-variant hover:bg-surface-container">
@@ -78,7 +78,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4">
           <div className="flex flex-col gap-1.5">
-            <label className="font-label-meta uppercase text-on-surface-variant font-bold">Source Account</label>
+            <label className="font-label-meta uppercase text-on-surface-variant font-bold">From Account</label>
             <select
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
@@ -86,7 +86,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
             >
               {accounts.map((acc) => (
                 <option key={acc.id} value={acc.id} disabled={acc.status === 'FROZEN'}>
-                  {acc.nickname || acc.accountType} (···· {acc.accountNumber.slice(-4)}) - {formatMoney(acc.balance, acc.currency, true)} {acc.status === 'FROZEN' ? '[FROZEN]' : ''}
+                  {acc.nickname || acc.accountType} (···· {acc.accountNumber.slice(-4)}) - {formatMoney(acc.balance, acc.currency || 'INR', true)} {acc.status === 'FROZEN' ? '[FROZEN]' : ''}
                 </option>
               ))}
             </select>
@@ -96,7 +96,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
             <div className="flex items-center justify-between">
               <label className="font-label-meta uppercase text-on-surface-variant font-bold">Withdrawal Amount ({currencyCode})</label>
               <span className="font-label-numeric-sm text-xs text-on-surface-variant">
-                Avail: <strong className="text-on-surface font-mono">{formatMoney(availableBal, currencyCode)}</strong>
+                Available: <strong className="text-on-surface font-mono">{formatMoney(availableBal, currencyCode)}</strong>
               </span>
             </div>
             <div className="relative">
@@ -115,10 +115,10 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="font-label-meta uppercase text-on-surface-variant font-bold">Reference / Purpose</label>
+            <label className="font-label-meta uppercase text-on-surface-variant font-bold">Remarks / Purpose</label>
             <input
               type="text"
-              placeholder="e.g., Vault Cash Outflow"
+              placeholder="e.g. ATM Cash Withdrawal, Personal Expense"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className="w-full px-3 py-2 rounded-xl bg-surface-container-low border border-surface-container-highest text-on-surface text-body-sm focus:outline-none focus:border-secondary"
@@ -140,7 +140,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
               disabled={loading}
               className="flex-1 py-2.5 px-4 rounded-xl bg-primary text-on-primary font-semibold hover:bg-inverse-surface transition-colors shadow-sm flex items-center justify-center gap-2"
             >
-              {loading ? 'Debiting...' : `Authorize Withdrawal (${currencyCode})`}
+              {loading ? 'Debiting...' : `Confirm Withdrawal (${currencyCode})`}
             </button>
           </div>
         </form>

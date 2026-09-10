@@ -26,8 +26,8 @@ export const DepositModal: React.FC<DepositModalProps> = ({
   if (!isOpen) return null;
 
   const currentAccount = accounts.find((a) => a.id === (accountId || accounts[0]?.id)) || accounts[0];
-  const symbol = getCurrencySymbol(currentAccount?.currency || 'USD');
-  const currencyCode = currentAccount?.currency || 'USD';
+  const symbol = getCurrencySymbol(currentAccount?.currency || 'INR');
+  const currencyCode = currentAccount?.currency || 'INR';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +41,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
     setLoading(true);
     setTimeout(() => {
       try {
-        onDeposit(accountId || accounts[0]?.id, amountNum, note || `Direct Capital Inbound Deposit (${currencyCode})`);
+        onDeposit(accountId || accounts[0]?.id, amountNum, note || `Direct Deposit (${currencyCode})`);
         setAmount('');
         setNote('');
         setLoading(false);
@@ -62,8 +62,8 @@ export const DepositModal: React.FC<DepositModalProps> = ({
               <span className="material-symbols-outlined text-[22px]">account_balance_wallet</span>
             </div>
             <div>
-              <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Deposit Funds</h3>
-              <p className="font-label-meta text-label-meta uppercase text-on-surface-variant">Instant Vault Liquidity Inflow</p>
+              <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Deposit Money</h3>
+              <p className="font-label-meta text-label-meta uppercase text-on-surface-variant">Instant Account Credit</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg text-on-surface-variant hover:bg-surface-container">
@@ -73,7 +73,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4">
           <div className="flex flex-col gap-1.5">
-            <label className="font-label-meta uppercase text-on-surface-variant font-bold">Target Account / Sub-Ledger</label>
+            <label className="font-label-meta uppercase text-on-surface-variant font-bold">Deposit To Account</label>
             <select
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
@@ -81,7 +81,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({
             >
               {accounts.map((acc) => (
                 <option key={acc.id} value={acc.id} disabled={acc.status === 'FROZEN'}>
-                  {acc.nickname || acc.accountType} (···· {acc.accountNumber.slice(-4)}) - {formatMoney(acc.balance, acc.currency, true)} {acc.status === 'FROZEN' ? '[FROZEN]' : ''}
+                  {acc.nickname || acc.accountType} (···· {acc.accountNumber.slice(-4)}) - {formatMoney(acc.balance, acc.currency || 'INR', true)} {acc.status === 'FROZEN' ? '[FROZEN]' : ''}
                 </option>
               ))}
             </select>
@@ -109,10 +109,10 @@ export const DepositModal: React.FC<DepositModalProps> = ({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="font-label-meta uppercase text-on-surface-variant font-bold">Reference / Note (Optional)</label>
+            <label className="font-label-meta uppercase text-on-surface-variant font-bold">Remarks / Reference (Optional)</label>
             <input
               type="text"
-              placeholder="e.g., Inbound Liquidity Allocation"
+              placeholder="e.g. Salary, Cheque Deposit, Cash Deposit"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className="w-full px-3 py-2 rounded-xl bg-surface-container-low border border-surface-container-highest text-on-surface text-body-sm focus:outline-none focus:border-secondary"

@@ -17,7 +17,7 @@ export const TwoFactorModal: React.FC<TwoFactorModalProps> = ({
   onClose,
   onConfirm,
   amount,
-  currency = 'USD',
+  currency = 'INR',
   beneficiaryName,
   sourceAccountName,
   isProcessing,
@@ -41,8 +41,8 @@ export const TwoFactorModal: React.FC<TwoFactorModalProps> = ({
               <span className="material-symbols-outlined text-[22px]">verified_user</span>
             </div>
             <div>
-              <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Dual-Sign Authorization</h3>
-              <p className="font-label-meta text-label-meta uppercase text-on-surface-variant">HMAC Authenticator 2FA</p>
+              <h3 className="font-headline-sm text-body-lg font-bold text-on-surface">Enter 6-Digit OTP</h3>
+              <p className="font-label-meta text-label-meta uppercase text-on-surface-variant">2-Factor Authentication</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg text-on-surface-variant hover:bg-surface-container">
@@ -52,15 +52,15 @@ export const TwoFactorModal: React.FC<TwoFactorModalProps> = ({
 
         <div className="p-3.5 rounded-xl bg-surface-container-low border border-surface-container-highest flex flex-col gap-1.5 text-xs">
           <div className="flex justify-between">
-            <span className="text-on-surface-variant">Instructed Sum:</span>
+            <span className="text-on-surface-variant">Transfer Amount:</span>
             <span className="font-mono font-bold text-on-surface">{formatMoney(amount, currency, true)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-on-surface-variant">Originating Ledger:</span>
+            <span className="text-on-surface-variant">From Account:</span>
             <span className="font-semibold text-on-surface">{sourceAccountName}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-on-surface-variant">Beneficiary Payee:</span>
+            <span className="text-on-surface-variant">To Payee:</span>
             <span className="font-semibold text-on-surface">{beneficiaryName}</span>
           </div>
         </div>
@@ -68,7 +68,7 @@ export const TwoFactorModal: React.FC<TwoFactorModalProps> = ({
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="font-label-meta uppercase text-on-surface-variant font-bold text-[10px]">
-              6-Digit Authenticator Token
+              OTP sent to registered mobile (+91 98765 43210)
             </label>
             <input
               type="text"
@@ -78,7 +78,7 @@ export const TwoFactorModal: React.FC<TwoFactorModalProps> = ({
               placeholder="000000"
               className="w-full text-center tracking-[0.5em] font-mono text-2xl font-bold py-2.5 px-3 rounded-xl bg-surface-container-low border border-surface-container-highest text-on-surface focus:outline-none focus:border-secondary"
             />
-            <span className="text-[10px] text-on-surface-variant text-center">Default test token: 849201</span>
+            <span className="text-[10px] text-on-surface-variant text-center">Demo OTP code: 849201</span>
           </div>
 
           <div className="flex items-center gap-3 pt-2 border-t border-surface-container-highest">
@@ -97,12 +97,12 @@ export const TwoFactorModal: React.FC<TwoFactorModalProps> = ({
               {isProcessing ? (
                 <>
                   <span className="w-3.5 h-3.5 border-2 border-on-primary border-t-transparent rounded-full animate-spin"></span>
-                  <span>Signing...</span>
+                  <span>Verifying...</span>
                 </>
               ) : (
                 <>
                   <span className="material-symbols-outlined text-[16px]">lock_open</span>
-                  <span>Confirm &amp; Transmit</span>
+                  <span>Confirm &amp; Pay</span>
                 </>
               )}
             </button>
